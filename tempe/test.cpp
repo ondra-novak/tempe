@@ -25,7 +25,7 @@ static Main theApp;
 
 integer Main::start(const Args& args) {
 
-	CommentRemover commentless(StdInput().getHandle().get());commentless.setStaticObj();
+	CommentRemover commentless(StdInput().getStream());commentless.setStaticObj();
 	ConsoleA console(&commentless,
 			ConsoleA::getStdOutput(),ConsoleA::getStdError());
 
