@@ -11,6 +11,7 @@
 #include <lightspeed/base/text/textstream.h>
 
 #include "interfaces.h"
+#include "SourceReader.h"
 
 namespace Tempe {
 
@@ -22,7 +23,7 @@ public:
 	Compiler(IRuntimeAlloc &alloc);
 	Compiler();
 
-	virtual PExprNode compile(ScanTextA &reader);
+	virtual PExprNode compile(SourceReader &reader);
 
 	bool legacyFunctions;
 
@@ -31,15 +32,15 @@ protected:
 	JSON::PFactory valueFactory;
 	natural level;
 
-	virtual PExprNode compileAssign(ScanTextA& reader);
-	virtual PExprNode compileOR(ScanTextA& reader);
-	virtual PExprNode compileAND(ScanTextA& reader);
-	virtual PExprNode compileRELAT(ScanTextA& reader);
-	virtual PExprNode compilePLUSMINUS(ScanTextA& reader);
-	virtual PExprNode compileMULTDIV(ScanTextA& reader);
-	virtual PExprNode compileUNAR(ScanTextA& reader);
-	virtual PExprNode compileIF(ScanTextA& reader);
-	virtual PExprNode compileUNARSuffix(ScanTextA& reader);
+	virtual PExprNode compileAssign(SourceReader& reader);
+	virtual PExprNode compileOR(SourceReader& reader);
+	virtual PExprNode compileAND(SourceReader& reader);
+	virtual PExprNode compileRELAT(SourceReader& reader);
+	virtual PExprNode compilePLUSMINUS(SourceReader& reader);
+	virtual PExprNode compileMULTDIV(SourceReader& reader);
+	virtual PExprNode compileUNAR(SourceReader& reader);
+	virtual PExprNode compileIF(SourceReader& reader);
+	virtual PExprNode compileUNARSuffix(SourceReader& reader);
 
 	Value adjustStringValue(ConstStrA text);
 
@@ -51,19 +52,19 @@ protected:
 protected:
 	class LevelControl {
 	public:
-		LevelControl(ScanTextA& reader, natural &level);
+		LevelControl(SourceReader& reader, natural &level);
 		~LevelControl();
 	protected:
-		ScanTextA &reader;
+		SourceReader &reader;
 		natural &level;
 	};
 
 	class NegLevelControl {
 	public:
-		NegLevelControl(ScanTextA& reader, natural &level);
+		NegLevelControl(SourceReader& reader, natural &level);
 		~NegLevelControl();
 	protected:
-		ScanTextA &reader;
+		SourceReader &reader;
 		natural &level;
 	};
 

@@ -10,6 +10,7 @@
 
 #include <lightspeed/base/namedEnum.h>
 #include "compiler.h"
+#include "SourceReader.h"
 
 using LightSpeed::NamedEnum;
 
@@ -54,12 +55,12 @@ public:
 
 protected:
 
-	virtual PExprNode compileUNAR(ScanTextA& reader);
+	virtual PExprNode compileUNAR(SourceReader& reader);
 
-	virtual PExprNode compileTemplate(ScanTextA &reader);
-	virtual PExprNode compileTemplateExpression(ScanTextA &reader, ContentType ctx, bool noEnding);
-	virtual PExprNode compilePlaceholder(ScanTextA &reader, ContentType ctx);
-	virtual PExprNode compileTextID(ScanTextA &reader, ContentType ctx, char firstChar);
+	virtual PExprNode compileTemplate(SourceReader &reader);
+	virtual PExprNode compileTemplateExpression(SourceReader &reader, ContentType ctx, bool noEnding);
+	virtual PExprNode compilePlaceholder(SourceReader &reader, ContentType ctx);
+	virtual PExprNode compileTextID(SourceReader &reader, ContentType ctx, char firstChar);
 
 	ContentType defaultContentType;
 

@@ -21,7 +21,7 @@ Compiler::Compiler():legacyFunctions(false),alloc(StdAlloc::getInstance()),value
 
 Compiler::Compiler(IRuntimeAlloc& alloc):legacyFunctions(false),alloc(alloc),valueFactory(JSON::create(alloc)),level(0) {}
 
-Compiler::LevelControl::LevelControl(ScanTextA& reader, natural &level):reader(reader),level(level) {
+Compiler::LevelControl::LevelControl(SourceReader& reader, natural &level):reader(reader),level(level) {
 	level++;
 	if (level == 1) {
 		reader.setWS(" \r\n\t");
@@ -34,7 +34,7 @@ Compiler::LevelControl::~LevelControl() {
 	level--;
 }
 
-Compiler::NegLevelControl::NegLevelControl(ScanTextA& reader, natural &level):reader(reader),level(level) {
+Compiler::NegLevelControl::NegLevelControl(SourceReader& reader, natural &level):reader(reader),level(level) {
 	if (level == 1) {
 		reader.setWS(" \t");
 	}
@@ -48,7 +48,7 @@ Compiler::NegLevelControl::~NegLevelControl() {
 }
 
 
-PExprNode Compiler::compile(ScanTextA& reader) {
+PExprNode Compiler::compile(SourceReader& reader) {
 
 
 	PExprNode nd = compileAssign(reader);
@@ -57,7 +57,7 @@ PExprNode Compiler::compile(ScanTextA& reader) {
 		//solves ; before endif and any ; after endif
 		if (reader.peek(" endif %") || reader.peek(" done %") || reader.peek(" end %") || reader.peek(" else %") || reader.peek(" catch %"))
 			return nd;
-		ExprLocation loc = reader.getCharCount();
+		ExprLocation loc = reader.getLocation();
 		PExprNode nd2 = compile(reader);
 		return (new(alloc) Oper_Comma(loc))
 			->setBranch(0,nd)->setBranch(1,nd2);
@@ -67,10 +67,10 @@ PExprNode Compiler::compile(ScanTextA& reader) {
 	}
 }
 
-PExprNode Compiler::compileAssign(ScanTextA& reader) {
+PExprNode Compiler::compileAssign(SourceReader& reader) {
 	PExprNode nd = compileOR(reader);
 	if (reader(" :=%")) {
-		ExprLocation loc = reader.getCharCount();
+		ExprLocation loc = reader.getLocation();
 		if (nd->getIfcPtr<IGetVarName>() == 0)
 			throw ParseError(THISLOCATION,loc,"There must be a variable before ':='");
 		PExprNode nd2 = compileAssign(reader);
@@ -81,10 +81,10 @@ PExprNode Compiler::compileAssign(ScanTextA& reader) {
 	}
 }
 
-PExprNode Compiler::compileOR(ScanTextA& reader) {
+PExprNode Compiler::compileOR(SourceReader& reader) {
 	PExprNode nd = compileAND(reader);
 	if (reader(" or\b%")) {
-		ExprLocation loc = reader.getCharCount();
+		ExprLocation loc = reader.getLocation();
 		PExprNode nd2 = compileOR(reader);
 		return (new(alloc) Oper_Or(loc))
 			->setBranch(0,nd)->setBranch(1,nd2);
@@ -93,10 +93,10 @@ PExprNode Compiler::compileOR(ScanTextA& reader) {
 	}
 }
 
-PExprNode Compiler::compileAND(ScanTextA& reader) {
+PExprNode Compiler::compileAND(SourceReader& reader) {
 	PExprNode nd = compileRELAT(reader);
 	if (reader(" and\b%")) {
-		ExprLocation loc = reader.getCharCount();
+		ExprLocation loc = reader.getLocation();
 		PExprNode nd2 = compileAND(reader);
 		return (new(alloc) Oper_And(loc))
 			->setBranch(0,nd)->setBranch(1,nd2);
@@ -105,7 +105,7 @@ PExprNode Compiler::compileAND(ScanTextA& reader) {
 	}
 }
 
-PExprNode Compiler::compileRELAT(ScanTextA& reader) {
+PExprNode Compiler::compileRELAT(SourceReader& reader) {
 	PExprNode nd = compilePLUSMINUS(reader);
 	Oper_Fn2::Fn fnpick;
 	if (reader(" >=%")) fnpick = &operGreatEqual;
@@ -118,13 +118,13 @@ PExprNode Compiler::compileRELAT(ScanTextA& reader) {
 	else if (reader(" <%")) fnpick = &operLess;
 	else return nd;
 
-	ExprLocation loc = reader.getCharCount();
+	ExprLocation loc = reader.getLocation();
 	PExprNode nd2 = compileRELAT(reader);
 
 	return (new(alloc) Oper_Fn2(loc,fnpick)) ->setBranch(0,nd)->setBranch(1,nd2);
 }
 
-PExprNode Compiler::compilePLUSMINUS(ScanTextA& reader) {
+PExprNode Compiler::compilePLUSMINUS(SourceReader& reader) {
 	PExprNode nd = compileMULTDIV(reader);
 	Oper_Fn2::Fn fnpick;
 	if (reader(" +%")) fnpick = &operPlus;
@@ -132,13 +132,13 @@ PExprNode Compiler::compilePLUSMINUS(ScanTextA& reader) {
 	else if (reader(" -%")) fnpick = &operMinus;
 	else return nd;
 
-	ExprLocation loc = reader.getCharCount();
+	ExprLocation loc = reader.getLocation();
 	PExprNode nd2 = compilePLUSMINUS(reader);
 
 	return (new(alloc) Oper_Fn2(loc,fnpick)) ->setBranch(0,nd)->setBranch(1,nd2);
 }
 
-PExprNode Compiler::compileMULTDIV(ScanTextA& reader) {
+PExprNode Compiler::compileMULTDIV(SourceReader& reader) {
 	PExprNode nd = compileUNARSuffix(reader);
 	Oper_Fn2::Fn fnpick;
 	if (reader(" //%")) fnpick = &operIntegerDiv;
@@ -147,13 +147,13 @@ PExprNode Compiler::compileMULTDIV(ScanTextA& reader) {
 	else if (reader(" %%%")) fnpick = &operMod;
 	else return nd;
 
-	ExprLocation loc = reader.getCharCount();
+	ExprLocation loc = reader.getLocation();
 	PExprNode nd2 = compileMULTDIV(reader);
 
 	return (new(alloc) Oper_Fn2(loc,fnpick)) ->setBranch(0,nd)->setBranch(1,nd2);
 }
 
-PExprNode Compiler::compileUNARSuffix(ScanTextA& reader) {
+PExprNode Compiler::compileUNARSuffix(SourceReader& reader) {
 	PExprNode nd = compileUNAR(reader);
 	do {
 		if (reader(" (%")) {
@@ -161,8 +161,8 @@ PExprNode Compiler::compileUNARSuffix(ScanTextA& reader) {
 			VariableRef *vname = nd->getIfcPtr<VariableRef >();
 
 			LevelControl levControl(reader,level);
-			ExprLocation loc = reader.getCharCount();
-			PNaryNode fn = vname?createFunction(reader.getCharCount(),vname->getName()):new(alloc) Oper_FunctionCall(loc,nd);
+			ExprLocation loc = reader.getLocation();
+			PNaryNode fn = vname?createFunction(reader.getLocation(),vname->getName()):new(alloc) Oper_FunctionCall(loc,nd);
 			natural cnt = fn->getN();
 			if (cnt == naturalNull) {
 				natural i = 0;
@@ -172,7 +172,7 @@ PExprNode Compiler::compileUNARSuffix(ScanTextA& reader) {
 					i++;
 					if (reader(" )%")) break;
 					else if (!reader(" ,%"))
-						throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting ',' or ')'");
+						throw ParseError(THISLOCATION,reader.getLocation(),"Expecting ',' or ')'");
 				} while (true);
 			} else {
 				for (natural i = 0, cnt = fn->getN(); i < cnt; i++) {
@@ -180,34 +180,34 @@ PExprNode Compiler::compileUNARSuffix(ScanTextA& reader) {
 					fn->setBranch(i,subnd);
 					if (i + 1 == cnt) {
 						if (!reader(" )%"))
-							throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting ')'");
+							throw ParseError(THISLOCATION,reader.getLocation(),"Expecting ')'");
 					} else {
 						if (!reader(" ,%"))
-							throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting ','");
+							throw ParseError(THISLOCATION,reader.getLocation(),"Expecting ','");
 					}
 				}
 			}
 			nd = fn.get();
 
 		} else if (reader(" []%")) {
-			nd = (new(alloc) Oper_ArrayAppend(reader.getCharCount()))->setBranch(0,nd);
+			nd = (new(alloc) Oper_ArrayAppend(reader.getLocation()))->setBranch(0,nd);
 		} else if (reader(" [%")) {
 			LevelControl levControl(reader,level);
 			PExprNode index = compile(reader);
 			if (reader(" ]%")) {
-				nd = (new(alloc) Oper_ArrayIndex(reader.getCharCount()))->setBranch(0,nd)->setBranch(1,index);
+				nd = (new(alloc) Oper_ArrayIndex(reader.getLocation()))->setBranch(0,nd)->setBranch(1,index);
 			} else {
-				throw ParseError(THISLOCATION,reader.getCharCount(),"Expected ']'");
+				throw ParseError(THISLOCATION,reader.getLocation(),"Expected ']'");
 			}
 		} else if (reader(" .%")) {
 
 			LevelControl levControl(reader,level);
 			PExprNode vname = compileUNAR(reader);
 			if (vname->getIfcPtr<LocalVarRef>() == 0) {
-				throw ParseError(THISLOCATION,reader.getCharCount(),"Right side of '.' must be an identifier");
+				throw ParseError(THISLOCATION,reader.getLocation(),"Right side of '.' must be an identifier");
 			}
 			Oper_MemberAccess *ma;
-			PExprNode pma = ma = new(alloc) Oper_MemberAccess(reader.getCharCount(), nd, vname);
+			PExprNode pma = ma = new(alloc) Oper_MemberAccess(reader.getLocation(), nd, vname);
 			nd = pma;
 
 		} else {
@@ -218,44 +218,44 @@ PExprNode Compiler::compileUNARSuffix(ScanTextA& reader) {
 }
 
 
-PExprNode Compiler::compileIF(ScanTextA& reader) {
+PExprNode Compiler::compileIF(SourceReader& reader) {
 	LevelControl levControl(reader,level);
 	PExprNode cond = compile(reader);
-	if (cond == nil) throw ParseError(THISLOCATION,reader.getCharCount(),"Unexcpected end of code after if");
+	if (cond == nil) throw ParseError(THISLOCATION,reader.getLocation(),"Unexcpected end of code after if");
 	if (reader(" then %")) {
 		PExprNode thenPart = compile(reader);
-		if (thenPart == nil) throw ParseError(THISLOCATION,reader.getCharCount(),"Unexcpected end of code after then");
+		if (thenPart == nil) throw ParseError(THISLOCATION,reader.getLocation(),"Unexcpected end of code after then");
 		if (reader(" elseif %")) {
 			NegLevelControl levControl(reader,level);
 			PExprNode elsePart = compileIF(reader);
-			return (new(alloc) Oper_If(reader.getCharCount()))->setBranch(0,cond)->setBranch(1,thenPart)->setBranch(2,elsePart);
+			return (new(alloc) Oper_If(reader.getLocation()))->setBranch(0,cond)->setBranch(1,thenPart)->setBranch(2,elsePart);
 		} else if (reader(" else %")) {
 			PExprNode elsePart = compile(reader);
-			if (elsePart == nil) throw ParseError(THISLOCATION,reader.getCharCount(),"Unexcpected end of code after else");
+			if (elsePart == nil) throw ParseError(THISLOCATION,reader.getLocation(),"Unexcpected end of code after else");
 			NegLevelControl levControl(reader,level);
-			if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting endif");
-			return (new(alloc) Oper_If(reader.getCharCount()))->setBranch(0,cond)->setBranch(1,thenPart)->setBranch(2,elsePart);
+			if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getLocation(),"Expecting endif");
+			return (new(alloc) Oper_If(reader.getLocation()))->setBranch(0,cond)->setBranch(1,thenPart)->setBranch(2,elsePart);
 		} else {
 			NegLevelControl levControl(reader,level);
-			if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting endif");
-			return (new(alloc) Oper_And(reader.getCharCount()))->setBranch(0,cond)->setBranch(1,thenPart);
+			if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getLocation(),"Expecting endif");
+			return (new(alloc) Oper_And(reader.getLocation()))->setBranch(0,cond)->setBranch(1,thenPart);
 		}
 	} else {
-		throw ParseError(THISLOCATION,reader.getCharCount(),"'If' without 'then'");
+		throw ParseError(THISLOCATION,reader.getLocation(),"'If' without 'then'");
 	}
 
 }
-PExprNode Compiler::compileUNAR(ScanTextA& reader) {
+PExprNode Compiler::compileUNAR(SourceReader& reader) {
 
 	if (reader(" not\b%") || reader(" !%")) {
 		PExprNode nd = compileUNARSuffix(reader);
-		return (new(alloc) Oper_Fn1(reader.getCharCount(),&operUnarNot))->setBranch(0,nd);
+		return (new(alloc) Oper_Fn1(reader.getLocation(),&operUnarNot))->setBranch(0,nd);
 	} else if (reader(" defined\b%")) {
 		PExprNode nd = compileUNARSuffix(reader);
-		return (new(alloc) Oper_Exist(reader.getCharCount()))->setBranch(0,nd);
+		return (new(alloc) Oper_Exist(reader.getLocation()))->setBranch(0,nd);
 	} else if (reader(" firstDefined\b%")) {
 		Oper_FirstDefined *fd;
-		PExprNode fn = fd = new(alloc) Oper_FirstDefined(reader.getCharCount());
+		PExprNode fn = fd = new(alloc) Oper_FirstDefined(reader.getLocation());
 
 		natural i = 0;
 		do {
@@ -266,85 +266,85 @@ PExprNode Compiler::compileUNAR(ScanTextA& reader) {
 	} else if (reader(" unset\b%")) {
 		PExprNode nd = compileUNARSuffix(reader);
 		if (nd->getIfcPtr<IGetVarName>() == 0)
-			throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting variable");
-		return (new(alloc) Oper_Unset(reader.getCharCount()))->setBranch(0,nd);
+			throw ParseError(THISLOCATION,reader.getLocation(),"Expecting variable");
+		return (new(alloc) Oper_Unset(reader.getLocation()))->setBranch(0,nd);
 	} else if (reader(" &%")) {
 		PExprNode nd = compileUNARSuffix(reader);
-		return (new(alloc) Oper_Link(reader.getCharCount()))->setBranch(0,nd);
+		return (new(alloc) Oper_Link(reader.getLocation()))->setBranch(0,nd);
 	} else if (reader(" var\b%")) {
 		PExprNode nd = compileUNARSuffix(reader);
-		return (new(alloc) Oper_Var(reader.getCharCount()))->setBranch(0,nd);
+		return (new(alloc) Oper_Var(reader.getLocation()))->setBranch(0,nd);
 	} else if (reader(" new\b%")) {
 		PExprNode nd = compileUNARSuffix(reader);
-		return (new(alloc) Oper_New(reader.getCharCount()))->setBranch(0,nd);
+		return (new(alloc) Oper_New(reader.getLocation()))->setBranch(0,nd);
 	} else if (reader(" isnull\b%")) {
 		PExprNode nd = compileUNARSuffix(reader);
-		return (new(alloc) Oper_IsNull(reader.getCharCount()))->setBranch(0,nd);
+		return (new(alloc) Oper_IsNull(reader.getLocation()))->setBranch(0,nd);
 	} else if (reader(" loop\b%")) {
 		PExprNode nd = compileUNARSuffix(reader);
-		return (new(alloc) Oper_Cycle(reader.getCharCount()))->setBranch(0,nd);
+		return (new(alloc) Oper_Cycle(reader.getLocation()))->setBranch(0,nd);
 	} else if (reader(" if\b%")) {
 		return compileIF(reader);
 	} else if (reader(" try\b%")) {
 		LevelControl levControl(reader,level);
 		PExprNode cond = compile(reader);
-		if (cond == nil) throw ParseError(THISLOCATION,reader.getCharCount(),"Unexcpected end of code after try");
+		if (cond == nil) throw ParseError(THISLOCATION,reader.getLocation(),"Unexcpected end of code after try");
 		if (reader(" catch %")) {
 			PExprNode var = compileUNARSuffix(reader);
 			PExprNode catchPart = compile(reader);
 			NegLevelControl levControl(reader,level);
-			if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting end");
-			return (new(alloc) Oper_TryCatch(reader.getCharCount()))->setBranch(0,cond)
+			if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getLocation(),"Expecting end");
+			return (new(alloc) Oper_TryCatch(reader.getLocation()))->setBranch(0,cond)
 					->setBranch(1,var)->setBranch(2,catchPart);
 		} else {
-			throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting catch");
+			throw ParseError(THISLOCATION,reader.getLocation(),"Expecting catch");
 		}
 	} else if (reader(" with\b%")) {
 		LevelControl levControl(reader,level);
 		PExprNode expr = compileUNARSuffix(reader);
 		PExprNode cmdlist;
 		if (reader(" join\b%")) {
-			cmdlist = new(alloc) Oper_WithDoJoin(reader.getCharCount(),compile(reader));
+			cmdlist = new(alloc) Oper_WithDoJoin(reader.getLocation(),compile(reader));
 		} else if (reader(" map\b%")) {
-				cmdlist = new(alloc) Oper_WithDoMap(reader.getCharCount(),compile(reader));
+				cmdlist = new(alloc) Oper_WithDoMap(reader.getLocation(),compile(reader));
 		} else {
 			cmdlist = compile(reader);
 		}
 		NegLevelControl _levControl(reader,level);
-		if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting end");
-		return (new(alloc) Oper_WithDo(reader.getCharCount()))->setBranch(0,expr)
+		if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getLocation(),"Expecting end");
+		return (new(alloc) Oper_WithDo(reader.getLocation()))->setBranch(0,expr)
 				->setBranch(1,cmdlist);
 	} else if (reader(" json%")) {
 		LevelControl levControl(reader,level);
 		JSON::PNode nd = JSON::parseFast(reader.nxChain());
-		return new(alloc) Constant(reader.getCharCount(),nd);
+		return new(alloc) Constant(reader.getLocation(),nd);
 	} else if (reader(" scope%")) {
 		LevelControl levControl(reader,level);
  		PExprNode body = compile(reader);
 		NegLevelControl _levControl(reader,level);
-		if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting end");
-		return (new(alloc) Oper_Scope(reader.getCharCount()))->setBranch(0,body);
+		if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getLocation(),"Expecting end");
+		return (new(alloc) Oper_Scope(reader.getLocation()))->setBranch(0,body);
 	} else if (reader(" while\b%")) {
 		LevelControl levControl(reader,level);
 		PExprNode cond = compile(reader);
-		if (cond == nil) throw ParseError(THISLOCATION,reader.getCharCount(),"Unexcpected end of code after while");
+		if (cond == nil) throw ParseError(THISLOCATION,reader.getLocation(),"Unexcpected end of code after while");
 		if (reader(" do %")) {
 			PExprNode body = compile(reader);
-			if (body == nil) throw ParseError(THISLOCATION,reader.getCharCount(),"Unexcpected end of code after do");
+			if (body == nil) throw ParseError(THISLOCATION,reader.getLocation(),"Unexcpected end of code after do");
 			NegLevelControl levControl(reader,level);
-			if (!reader("%(*)[\r\n\t ]%done %")) throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting done");
-			ExprLocation loc = reader.getCharCount();
+			if (!reader("%(*)[\r\n\t ]%done %")) throw ParseError(THISLOCATION,reader.getLocation(),"Expecting done");
+			ExprLocation loc = reader.getLocation();
 			PExprNode semcol = (new(alloc) Oper_Comma(loc))->setBranch(0,body)->setBranch(1,cond);
 			PExprNode loopCmd = (new(alloc) Oper_Cycle(loc))->setBranch(0,semcol);
 			PExprNode andCmd =  (new(alloc) Oper_And(loc))->setBranch(0,cond)->setBranch(1,loopCmd);
 			return andCmd;
 		} else {
-			throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting do");
+			throw ParseError(THISLOCATION,reader.getLocation(),"Expecting do");
 		}
 	} else if (reader(" function (%")) {
 		AutoArray<FunctionVar::VarName_OutMode> varlist;
 		LevelControl levControl(reader,level);
-		ExprLocation startloc = reader.getCharCount();
+		ExprLocation startloc = reader.getLocation();
 		bool opt = false;
 		if (!reader(" )%")) do {
 			ExprLocation loc = startloc;
@@ -360,50 +360,50 @@ PExprNode Compiler::compileUNAR(ScanTextA& reader) {
 			} else
 				throw ParseError(THISLOCATION,loc,"Expecting keyword 'in' or 'out' with identifier");
 
-			loc = reader.getCharCount();
+			loc = reader.getLocation();
 			if (reader(" )%")) break;
 			if (!reader(" ,%")) throw ParseError(THISLOCATION,loc,"Expecting ',' or ')'");
 		} while (true);
 		PExprNode nd = compile(reader);
 		NegLevelControl levControl2(reader,level);
-		if (!reader("%(*)[\r\n\t ]%end%")) throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting keyword 'end'");
+		if (!reader("%(*)[\r\n\t ]%end%")) throw ParseError(THISLOCATION,reader.getLocation(),"Expecting keyword 'end'");
 		return new(alloc) Constant(startloc,Value(new(alloc) FunctionVar(varlist,nd)));
 	} else if (reader(" break\b%")) {
-		return (new(alloc) Oper_Break(reader.getCharCount()));
+		return (new(alloc) Oper_Break(reader.getLocation()));
 	} else if (reader(" throw\b%")) {
 		PExprNode cond = compileUNARSuffix(reader);
-		return (new(alloc) Oper_Throw(reader.getCharCount()))->setBranch(0,cond);
+		return (new(alloc) Oper_Throw(reader.getLocation()))->setBranch(0,cond);
 	} else if (reader(" -%")) {
 		PExprNode nd = compileUNARSuffix(reader);
-		return (new(alloc) Oper_Fn1(reader.getCharCount(),&operUnarMinus))->setBranch(0,nd);
+		return (new(alloc) Oper_Fn1(reader.getLocation(),&operUnarMinus))->setBranch(0,nd);
 	} else if (reader(" +%")) {
 		return compileUNARSuffix(reader);
 //	} else if (reader(" %(1,1)[a-zA-Z_](*)[a-zA-Z0-9._]1% (%")) {
 	} else if (reader(" %(1,1)[a-zA-Z_](*)[a-zA-Z0-9_]1%%")) {
 		ConstStrA idf = reader[1].str();
-		ExprLocation loc = reader.getCharCount();
+		ExprLocation loc = reader.getLocation();
 		return createConstant(loc,idf);
 	} else if (reader(" %(*)q``1%%")) {
 		ConstStrA idf = reader[1].str();
-		ExprLocation loc = reader.getCharCount();
+		ExprLocation loc = reader.getLocation();
 		return createConstant(loc,idf);
 	} else if (reader(" $%[a-zA-Z0-9_.]1%%")) {
 		ConstStrA tagname = reader[1].str();
-		return new(alloc) TagValue(reader.getCharCount(),tagname);
+		return new(alloc) TagValue(reader.getLocation(),tagname);
 	} else if (reader(" %(*)q\"\"1%%")) {
-		return new(alloc) Constant(reader.getCharCount(),adjustStringValue(reader[1].str()));
+		return new(alloc) Constant(reader.getLocation(),adjustStringValue(reader[1].str()));
 	} else if (reader(" %f1%%")) {
 		TextParser<char,SmallAlloc<256> > p2;
 		ConstStrA nr = reader[1];
-		if (p2("%u1",nr)) return new(alloc) Constant(reader.getCharCount(),valueFactory->newValue((natural)reader[1]));
-		else return new(alloc) Constant(reader.getCharCount(),valueFactory->newValue((double)reader[1]));
+		if (p2("%u1",nr)) return new(alloc) Constant(reader.getLocation(),valueFactory->newValue((natural)reader[1]));
+		else return new(alloc) Constant(reader.getLocation(),valueFactory->newValue((double)reader[1]));
 	} else if (reader(" (%")) {
 		LevelControl levControl(reader,level);
 		PExprNode nd = compile(reader);
 		if (reader(" )%")) return nd;
-		throw ParseError(THISLOCATION,reader.getCharCount(),"Missing ')'");
+		throw ParseError(THISLOCATION,reader.getLocation(),"Missing ')'");
 	}
-	throw ParseError(THISLOCATION,reader.getCharCount(),"Unexpected token\n");
+	throw ParseError(THISLOCATION,reader.getLocation(),"Unexpected token\n");
 }
 
 Value Compiler::adjustStringValue(ConstStrA text) {

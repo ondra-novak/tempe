@@ -15,7 +15,7 @@ namespace Tempe {
 
 void ScriptException::message(ExceptionMsg& msg) const {
 
-	msg("In expression at position %1") << eloc;
+	msg("In expression at position (%1:%2)") << eloc.getFileName() << eloc.getPosition();
 
 }
 
@@ -34,7 +34,7 @@ ParseError::ParseError(const ProgramLocation& loc,
 }
 
 void ParseError::message(ExceptionMsg& msg) const {
-	msg("Parse error at position %1: %2") << eloc << comment;
+	msg("Parse error at position (%1:%2) %3") << eloc.getFileName() << eloc.getPosition() << comment;
 }
 
 OperationIsUndefined::OperationIsUndefined(

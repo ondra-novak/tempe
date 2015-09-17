@@ -15,44 +15,22 @@
 
 namespace Tempe {
 
+using namespace LightSpeed;
 
-
-/*
-template<typename T>
-class CommentRemover: public LightSpeed::IteratorFilterBase<T,T,CommentRemover<T> > {
+class CommentRemover: public IInputStream {
 public:
-	CommentRemover():chr(0),incomment(false) {}
+	CommentRemover(PInputStream source);
 
-    bool needItems() const {return chr == nil;}
-    void input(const T &x) { chr = &x;}
-    bool hasItems() const {return chr != nil;}
-    T output() {
-   		if (*chr == '\n') incomment = false;
-   		else if (*chr == '#') incomment = true;
-    	if (incomment) return ' ';
-    	else return *chr;
-    }
-
-protected:
-	const T *chr;
-	bool incomment;
-
-};
-*/
-class CommentRemover: public LightSpeed::IInputStream {
-public:
-	CommentRemover(LightSpeed::PInputStream source);
-
-    virtual LightSpeed::natural read(void *buffer,  LightSpeed::natural size);
-	virtual LightSpeed::natural peek(void *buffer, LightSpeed::natural size) const;
+    virtual natural read(void *buffer,  natural size);
+	virtual natural peek(void *buffer, natural size) const;
 	virtual bool canRead() const;
-	virtual LightSpeed::natural dataReady() const;
+	virtual natural dataReady() const;
 
 protected:
-	LightSpeed::PInputStream source;
+	PInputStream source;
 	bool incomment;
 
-	static void removeComments(void *buffer,LightSpeed::natural size,bool &incomment);
+	static void removeComments(void *buffer,natural size,bool &incomment);
 };
 
 }

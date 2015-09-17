@@ -158,7 +158,7 @@ public:
 
 };
 
-PExprNode TempeCompiler::compileUNAR(ScanTextA& reader) {
+PExprNode TempeCompiler::compileUNAR(SourceReader& reader) {
 
 	if (reader(" {$%")) {
 		LevelControl levControl(reader,level);
@@ -168,13 +168,13 @@ PExprNode TempeCompiler::compileUNAR(ScanTextA& reader) {
 		LevelControl levControl(reader,level);
 		PExprNode expr = compileUNAR(reader);
 		PExprNode frag = compileUNAR(reader);
-		frag = new(alloc) Oper_WithDoJoin(reader.getCharCount(),frag);
-		return (new(alloc) Oper_WithDo(reader.getCharCount()))->setBranch(0,expr)
+		frag = new(alloc) Oper_WithDoJoin(reader.getLocation(),frag);
+		return (new(alloc) Oper_WithDo(reader.getLocation()))->setBranch(0,expr)
 				->setBranch(1,frag);
 	} else return Compiler::compileUNAR(reader);
 }
 
-PExprNode TempeCompiler::compileTemplate(ScanTextA& reader) {
+PExprNode TempeCompiler::compileTemplate(SourceReader& reader) {
 
 	ContentType ctx = defaultContentType;
 	if (reader("%(*)[a-z](*)[0-9]1\\%")) {
@@ -187,7 +187,7 @@ PExprNode TempeCompiler::compileTemplate(ScanTextA& reader) {
 }
 
 
-PExprNode TempeCompiler::compileTemplateExpression(ScanTextA& reader, ContentType ctx, bool noEnding) {
+PExprNode TempeCompiler::compileTemplateExpression(SourceReader& reader, ContentType ctx, bool noEnding) {
 
 	AutoArrayStream<wchar_t> str;
 	Utf8ToWideWriter<AutoArrayStream<wchar_t> &> wr(str);
@@ -200,24 +200,24 @@ PExprNode TempeCompiler::compileTemplateExpression(ScanTextA& reader, ContentTyp
 			if (d == '$') wr.write(d);
 			else if (d == '}') {
 				if (noEnding) {
-					throw ParseError(THISLOCATION,reader.getCharCount(),"Template end sequence is not allowed here");
+					throw ParseError(THISLOCATION,reader.getLocation(),"Template end sequence is not allowed here");
 				} else {
-					ExprLocation loc = reader.getCharCount();
+					ExprLocation loc = reader.getLocation();
 					return createStringNode(loc,str.getArray());
 				}
 			} else if (d == '{') {
-				ExprLocation loc = reader.getCharCount();
+				ExprLocation loc = reader.getLocation();
 				PExprNode n1 = createStringNode(loc,str.getArray());
 				PExprNode n2 = compilePlaceholder(reader,ctx);
 				char e = reader.getNext();
 				while (isspace(e)) e = reader.getNext();
-				if (e != '}') throw ParseError(THISLOCATION,reader.getCharCount(),"Expecting '}'");
+				if (e != '}') throw ParseError(THISLOCATION,reader.getLocation(),"Expecting '}'");
 				PExprNode n3 = compileTemplateExpression(reader,ctx,noEnding);
 				return (new(alloc) ConcatParts(loc))->setBranch(0,n1)
 						->setBranch(1,n2)->setBranch(2,n3);
 
 			} else if (isalpha(d) || d == '_') {
-				ExprLocation loc = reader.getCharCount();
+				ExprLocation loc = reader.getLocation();
 				PExprNode n1 = createStringNode(loc,str.getArray());
 				PExprNode n2 = compileTextID(reader,ctx,d);
 				PExprNode n3 = compileTemplateExpression(reader,ctx,noEnding);
@@ -225,22 +225,22 @@ PExprNode TempeCompiler::compileTemplateExpression(ScanTextA& reader, ContentTyp
 						->setBranch(1,n2)->setBranch(2,n3);
 
 			} else {
-				throw ParseError(THISLOCATION,reader.getCharCount(),"Invalid escape character. Must be one of '$$', '$}' or '${'");
+				throw ParseError(THISLOCATION,reader.getLocation(),"Invalid escape character. Must be one of '$$', '$}' or '${'");
 			}
 		} else {
 			wr.write(c);
 		}
 	}
 	if (noEnding) {
-		ExprLocation loc = reader.getCharCount();
+		ExprLocation loc = reader.getLocation();
 		return createStringNode(loc,str.getArray());
 	} else {
-		throw ParseError(THISLOCATION,reader.getCharCount(),"Unexpected end of file");
+		throw ParseError(THISLOCATION,reader.getLocation(),"Unexpected end of file");
 	}
 
 }
 
-PExprNode TempeCompiler::compilePlaceholder(ScanTextA& reader, ContentType ctx) {
+PExprNode TempeCompiler::compilePlaceholder(SourceReader& reader, ContentType ctx) {
 
 	ContentType forcedCtx = ctx;
 
@@ -250,7 +250,7 @@ PExprNode TempeCompiler::compilePlaceholder(ScanTextA& reader, ContentType ctx) 
 			forcedCtx = strContentType[strctx];
 		}
 	}
-	ExprLocation loc = reader.getCharCount();
+	ExprLocation loc = reader.getLocation();
 
 	ContentType saveCtx = defaultContentType;
 	try {
@@ -271,8 +271,7 @@ PExprNode TempeCompiler::compilePlaceholder(ScanTextA& reader, ContentType ctx) 
 PExprNode TempeCompiler::compileTemplate(ConstStrA text, ContentType ctype) {
 	MemFileStr memfile(text);memfile.setStaticObj();
 	SeqFileInput infile(&memfile);
-	SeqTextInA textfile(infile);
-	ScanTextA treader(textfile);
+	SourceReader treader(infile,FilePath());
 	TempeCompiler compiler;
 	return compiler.compileTemplateExpression(treader,ctype,true);
 
@@ -282,7 +281,7 @@ TempeCompiler::ContentType TempeCompiler::getCtFromMime(ConstStrA mime) {
 	return strMimeCt[mime];
 }
 
-PExprNode TempeCompiler::compileTextID(ScanTextA& reader, ContentType ctx, char firstChar) {
+PExprNode TempeCompiler::compileTextID(SourceReader& reader, ContentType ctx, char firstChar) {
 	ContentType forcedCtx = ctx;
 
 	if (reader("%(*)[a-z](*)[0-9]1\\%")) {
@@ -291,7 +290,7 @@ PExprNode TempeCompiler::compileTextID(ScanTextA& reader, ContentType ctx, char 
 			forcedCtx = strContentType[strctx];
 		}
 	}
-	ExprLocation loc = reader.getCharCount();
+	ExprLocation loc = reader.getLocation();
 	AutoArray<char, SmallAlloc<256> > ident;
 	ident.add(firstChar);
 	while (reader.hasItems()) {

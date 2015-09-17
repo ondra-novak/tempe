@@ -235,7 +235,8 @@ Value Oper_LogOut::calculate(IExprEnvironment& env) const {
 		JSON::PNode res = nodes[i]->calculate(env);
 		JSON::serialize(res,buff,false);
 	}
-	ProgramLocation loc("<script>",this->loc,"");
+	StringA pos = String::getUtf8(this->loc.getFileName());
+	ProgramLocation loc(pos.c_str(),this->loc.getPosition(),"");
 	LogObject(loc).note("Script log: %1") << ConstStrA(buff.getArray());
 	return env.getFactory().newValue(true);
 }

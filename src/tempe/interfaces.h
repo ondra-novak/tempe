@@ -14,6 +14,9 @@
 #include <lightspeed/base/interface.h>
 #include <lightspeed/base/memory/sharedPtr.h>
 #include <lightspeed/utils/json.h>
+#include "SourceReader.h"
+
+using LightSpeed::FilePath;
 
 
 namespace Tempe {
@@ -23,7 +26,9 @@ namespace Tempe {
 	typedef JSON::PNode Value;
 	typedef ConstStrA VarNameRef;
 	typedef StringA VarName;
-	typedef natural ExprLocation;
+	typedef SourceLocation ExprLocation;
+
+
 
 	class IExprEnvironment: public IInterface {
 	public:
@@ -52,7 +57,7 @@ namespace Tempe {
 	public:
 
 		virtual Value calculate(IExprEnvironment &env) const = 0;
-		virtual natural getSourceLocation() const = 0;
+		virtual ExprLocation getSourceLocation() const = 0;
 
 		virtual ~IExprNode() {}
 	};
@@ -63,7 +68,7 @@ namespace Tempe {
 	public:
 
 		AbstractNode(const ExprLocation &loc):loc(loc) {}
-		virtual natural getSourceLocation() const {return loc;}
+		virtual ExprLocation getSourceLocation() const {return loc;}
 	protected:
 		ExprLocation loc;
 	};

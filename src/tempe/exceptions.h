@@ -26,7 +26,7 @@ using namespace LightSpeed;
 	class ExceptionWithLocation: public Exception {
 	public:
 		ExceptionWithLocation(const ExprLocation &eloc):eloc(eloc) {}
-
+		~ExceptionWithLocation() throw () {}
 		const ExprLocation &getScriptLoc() const {return eloc;}
 	protected:
 		ExprLocation eloc;
@@ -135,7 +135,8 @@ using namespace LightSpeed;
 
 	class BreakException: public Exception {
 	public:
-		BreakException(const ProgramLocation &loc, const ExprLocation &eloc):LightSpeed::Exception(loc) {}
+		BreakException(const ProgramLocation &loc, const ExprLocation &eloc)
+		:LightSpeed::Exception(loc),eloc(eloc) {}
 		~BreakException() throw() {}
 
 		const ExprLocation getLoc() const {return eloc;}
