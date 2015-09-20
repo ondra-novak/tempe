@@ -20,7 +20,7 @@ SourceReader::SourceReader(SeqFileInput srcStream, FilePath fname, natural offse
 }
 
 SourceLocation SourceReader::getLocation() const {
-	return SourceLocation(fname, offset+getCharCount());
+	return SourceLocation(fname, offset+flt->getCurLine());
 }
 
 natural Tempe::SourceLocation::getPosition() const {

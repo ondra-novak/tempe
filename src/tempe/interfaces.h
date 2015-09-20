@@ -36,11 +36,11 @@ namespace Tempe {
 		virtual Value getVar(VarNameRef name) const = 0;
 		virtual void setVar(VarNameRef name, const Value val) = 0;
 		virtual void unset(VarNameRef name) = 0;
-		virtual bool getTag(VarNameRef tagName) const = 0;
 		virtual bool varExists(VarNameRef name) const = 0;
 		virtual JSON::IFactory &getFactory() const = 0;
 		virtual IExprEnvironment &getGlobalEnv() = 0;
 		virtual const IExprEnvironment &getGlobalEnv() const = 0;
+		virtual natural getCycleTimeout() const = 0;
 
 		virtual ~IExprEnvironment() {}
 	};

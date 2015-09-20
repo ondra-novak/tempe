@@ -20,7 +20,6 @@ public:
 	virtual Value getVar(VarNameRef name) const;
 	virtual void setVar(VarNameRef name, const Value val);
 	virtual void unset(VarNameRef name);
-	virtual bool getTag(VarNameRef tagName) const;
 	virtual bool varExists(VarNameRef name) const;
 	virtual JSON::IFactory &getFactory() const;
 	virtual IExprEnvironment &getGlobalEnv() ;
@@ -31,23 +30,24 @@ public:
 	void setStaticVar(VarNameRef name, const Value val);
 	void clear();
 	void clearStatic();
-	void clearTags();
-	void setTag(VarNameRef tagName, bool set);
 
 	typedef Set<VarName,std::less<VarName> > Tags;
 
-	const Tags &getTags() const {return tags;}
-	Tags &getTags() {return tags;}
+	void setCycleTimeout(natural tmInMs);
+	virtual natural getCycleTimeout() const ;
 
+	virtual IVtIterator<char> *getTempeOutput() const { return 0; }
 
 protected:
 
 	void initFunctions();
 
+
+
 	JSON::PFactory factory;
 	JSON::PNode table;
 	JSON::PNode staticTable;
-	Tags tags;
+	natural cycleTm;
 
 };
 
@@ -59,7 +59,6 @@ public:
 	virtual Value getVar(VarNameRef name) const;
 	virtual void setVar(VarNameRef name, const Value val);
 	virtual void unset(VarNameRef name);
-	virtual bool getTag(VarNameRef tagName) const;
 	virtual bool varExists(VarNameRef name) const;
 	virtual JSON::IFactory &getFactory() const;
 	virtual IExprEnvironment &getGlobalEnv() ;
@@ -67,11 +66,15 @@ public:
 
 	JSON::PNode getObject() const {return table;}
 
+	void setCycleTimeout(natural tmInMs);
+	virtual natural getCycleTimeout() const;
 
+	virtual IVtIterator<char> *getTempeOutput() const { return parent.getTempeOutput(); }
 protected:
 	IExprEnvironment &parent;
 	JSON::PFactory factory;
 	JSON::PNode table;
+	natural cycleTm;
 private:
 	LocalScope(const LocalScope &parent);
 	LocalScope &operator=(const LocalScope &parent);

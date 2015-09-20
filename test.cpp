@@ -16,6 +16,7 @@
 #include <lightspeed/utils/json/jsonfast.tcc>
 
 #include "tempe/tempeCompiler.h"
+#include "src/tempe/compiler2.h"
 namespace TempeTest {
 
 using namespace Tempe;
@@ -26,22 +27,22 @@ static Main theApp;
 integer Main::start(const Args& args) {
 
 	ConsoleA console;
-	SourceReader src(console.in.nxChain(),FilePath(L"<stdin>"));
+	TokenReader src(StdAlloc::getInstance(),console.in.nxChain(),FilePath(L"<stdin>"));
 
 	VarTable vtable;
 	//console.scan.setWS(ConstStrA(" \t\n\r\a\b"));
 	while (src.hasItems()) {
 
-		TempeCompiler comp(TempeCompiler::ctnPlain);
+		Compiler2 comp(StdAlloc::getInstance());
 		PExprNode nd;
-		try {
-			src("\b%");
-			nd = comp.compile(src);
+		try {			
+			nd = comp.compileInteractive(src);
 		} catch (const std::exception &e) {
 			console.error("Compile error: %1\n") << e.what();
-			console.scan("%(*)0\n%");
 			console.flush();
-			src("%(*)0\n%");
+			src.resetLevel(true);
+			while (src.getNext() != TokenReader::eof) src.accept();
+			src.accept();
 			continue;
 		}
 
@@ -52,8 +53,7 @@ integer Main::start(const Args& args) {
 			console.error("Runtime error: %1\n") << e.what();
 			console.flush();
 			continue;
-		}
-		src("%(*)0\n%");
+		}		
 
 	}
 

@@ -135,5 +135,10 @@ void BreakException::message(ExceptionMsg& msg) const {
 }
 
 
+void ExecutionTimeout::message(ExceptionMsg &msg) const
+{
+	msg("Execution timeout");
+}
+
 }
 

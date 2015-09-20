@@ -181,10 +181,15 @@ Value Oper_Exist::calculate(IExprEnvironment& env) const {
 
 Value Oper_Cycle::calculate(IExprEnvironment& env) const {
 	try {
+		Timeout tm(env.getCycleTimeout());
 		Value r = branch[0]->calculate(env);
-		while (r->getBool()) { r = branch[0]->calculate(env); }
+		while (r->getBool()) { 
+			if (tm.expired())
+				throw ExecutionTimeout(THISLOCATION);
+			r = branch[0]->calculate(env); 
+		}
 		return r;
-	} catch (BreakException &e) {
+	} catch (BreakException &) {
 		return env.getFactory().newNullNode();
 	} catch (LightSpeed::Exception &e) {
 		throwScriptException(THISLOCATION,loc,e);throw;
@@ -194,14 +199,6 @@ Value Oper_Cycle::calculate(IExprEnvironment& env) const {
 }
 
 
-Value Tempe::TagValue::calculate(IExprEnvironment& env) const {
-	try {
-		return env.getFactory().newValue(env.getTag(tagName));
-	} catch (LightSpeed::Exception &e) {
-		throwScriptException(THISLOCATION,loc,e);throw;
-	}	throw;
-
-}
 
 
 
@@ -209,6 +206,12 @@ AbstrNaryNode* VariadicNode::setBranch(natural b, PExprNode nd) {
 	if (nodes.length() < b + 1) nodes.resize(b + 1);
 	nodes(b) = nd;
 	return this;
+}
+
+void VariadicNode::setBranches(class ConstStringT<PExprNode> branches)
+{
+	nodes.clear();
+	nodes.append(branches);
 }
 
 Value Oper_Exec::calculate(IExprEnvironment& env) const {
@@ -566,6 +569,12 @@ Value Oper_WithDo::calculate(IExprEnvironment& env) const {
 Value Oper_Scope::calculate(IExprEnvironment& env) const {
 	LocalScope scope(env);
 	return branch[0]->calculate(scope);
+}
+
+Value Oper_Object::calculate(IExprEnvironment& env) const {
+	LocalScope scope(env);
+	branch[0]->calculate(scope);
+	return scope.getObject();
 }
 
 Value Oper_WithDoJoin::calculate(IExprEnvironment& env) const {

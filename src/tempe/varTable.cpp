@@ -50,7 +50,8 @@ public:
 
 VarTable::VarTable():factory(new Factory_t)
 			,table(factory->newClass())
-			,staticTable(factory->newClass()) {
+			,staticTable(factory->newClass())
+			,cycleTm(5000) {
 	initFunctions();
 }
 
@@ -75,9 +76,6 @@ void VarTable::unset(VarNameRef name) {
 	table->erase(name);
 }
 
-bool VarTable::getTag(VarNameRef tagName) const {
-	return tags.find(tagName) != 0;
-}
 
 bool VarTable::varExists(VarNameRef name) const {
 	return (table->getVariable(name) || staticTable->getVariable(name));
@@ -103,16 +101,10 @@ void VarTable::clearStatic() {
 	staticTable = factory->newClass();
 }
 
-void VarTable::clearTags() {
-	tags.clear();
-}
 
-void VarTable::setTag(VarNameRef tagName, bool set) {
-	if (set) tags.insert(tagName); else tags.erase(tagName);
-}
 
 LocalScope::LocalScope(IExprEnvironment& parent)
-	:parent(parent),factory(&parent.getFactory()),table(factory->newClass())
+	:parent(parent), factory(&parent.getFactory()), table(factory->newClass()), cycleTm(naturalNull)
  {
 }
 
@@ -135,9 +127,6 @@ void LocalScope::unset(VarNameRef name) {
 	table->erase(name);
 }
 
-bool LocalScope::getTag(VarNameRef tagName) const {
-	return parent.getTag(tagName);
-}
 
 bool LocalScope::varExists(VarNameRef name) const {
 	return table->getVariable(name) || parent.varExists(name);
@@ -162,6 +151,17 @@ IExprEnvironment& LocalScope::getGlobalEnv() {
 
 const IExprEnvironment& LocalScope::getGlobalEnv() const {
 	return parent.getGlobalEnv();
+}
+
+void LocalScope::setCycleTimeout(natural tmInMs)
+{
+
+}
+
+LightSpeed::natural LocalScope::getCycleTimeout() const
+{
+	if (cycleTm == naturalNull) return parent.getCycleTimeout();
+	else return cycleTm;
 }
 
 LocalScope::LocalScope(IExprEnvironment& parent, JSON::PNode import)
@@ -209,6 +209,11 @@ void VarTable::initFunctions() {
 	setVar("scan", Value(createFnCall(alloc,&fnScan)));
 	setVar("chr", Value(createFnCall(alloc,&fnChr)));
 	setVar("array", Value(createFnCall(alloc,&fnArray)));
+}
+
+natural VarTable::getCycleTimeout() const
+{
+	return cycleTm;
 }
 
 /* namespace Tempe */

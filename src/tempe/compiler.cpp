@@ -387,9 +387,6 @@ PExprNode Compiler::compileUNAR(SourceReader& reader) {
 		ConstStrA idf = reader[1].str();
 		ExprLocation loc = reader.getLocation();
 		return createConstant(loc,idf);
-	} else if (reader(" $%[a-zA-Z0-9_.]1%%")) {
-		ConstStrA tagname = reader[1].str();
-		return new(alloc) TagValue(reader.getLocation(),tagname);
 	} else if (reader(" %(*)q\"\"1%%")) {
 		return new(alloc) Constant(reader.getLocation(),adjustStringValue(reader[1].str()));
 	} else if (reader(" %f1%%")) {

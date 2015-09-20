@@ -201,20 +201,14 @@ namespace Tempe {
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
 	};
 
-	class TagValue: public AbstractNode {
-	public:
-		TagValue(const ExprLocation &loc, const VarName &tagName):AbstractNode(loc),tagName(tagName) {}
-		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
-	protected:
-		VarName tagName;
-	};
-
+	
 	class VariadicNode: public AbstrNaryNode {
 	public:
 		VariadicNode(const ExprLocation &loc):AbstrNaryNode(loc) {}
 		virtual AbstrNaryNode *setBranch(natural b, PExprNode nd);
 		virtual natural getN() const {return naturalNull;}
+		void setBranches(class ConstStringT<PExprNode> branches);
+
 	protected:
 		AutoArray<PExprNode> nodes;
 	};
@@ -272,6 +266,13 @@ namespace Tempe {
 		Oper_Scope(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+	};
+
+	class Oper_Object : public NaryNode<1> {
+	public:
+		Oper_Object(const ExprLocation &loc) :NaryNode<1>(loc) {}
+		virtual Value calculate(IExprEnvironment &env) const;
+		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const { throw; }
 	};
 
 	class Oper_Throw: public NaryNode<1> {

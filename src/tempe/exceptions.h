@@ -85,6 +85,14 @@ using namespace LightSpeed;
 		void message(ExceptionMsg &msg) const;
 	};
 
+	class ExecutionTimeout : public Exception {
+	public:
+		LIGHTSPEED_EXCEPTIONFINAL;
+
+		ExecutionTimeout(const ProgramLocation &loc) {}
+		void message(ExceptionMsg &msg) const;
+	};
+
 
 	class VariableNotExistException: public Exception {
 	public:
