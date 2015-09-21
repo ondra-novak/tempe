@@ -52,6 +52,7 @@ namespace Tempe {
 		{ TokenReader::kwTemplate, "template" }, //< template <encoding> {$ template text $} end
 		{ TokenReader::kwForeach, "foreach" }, 
 		{ TokenReader::kwConst, "const" },  //< const <expr> - executes <expr> during compilation
+		{ TokenReader::kwEcho, "echo" },
 		{ TokenReader::begin, "<begin>" },
 		{ TokenReader::eof, "<eof>" },
 		{ TokenReader::symbUnknown, "<unknown-symbol>" },
@@ -110,6 +111,16 @@ namespace Tempe {
 
 	NamedEnum<EscapeMode> strEscapeMode(strEscapeModeDef);
 
+
+	static NamedEnumDef<EscapeMode> strMimeCtDef[] = {
+			{emPlain,"text/plain"},
+			{emHtml,"text/html"},
+			{emXml,"text/xml"},
+			{emJS,"application/json"},
+			{emJS,"text/javascript"},
+	};
+
+	static NamedEnum<EscapeMode> strMimeCt(strMimeCtDef);
 
 
 	TokenReader::Symbol TokenReader::getNext()
@@ -560,6 +571,9 @@ namespace Tempe {
 			case TokenReader::kwFunction:
 				reader.accept();
 				return compileOpFunction(loc, reader);
+			case TokenReader::kwEcho:
+				reader.accept();
+				return (new(alloc)OutputResult(loc, curEscapeMode))->setBranch(0,compileAssign(reader));
 			case TokenReader::kwBreak:
 				reader.accept();
 				return (new(alloc)Oper_Break(loc));
@@ -681,6 +695,18 @@ namespace Tempe {
 		}
 	}
 
+	PExprNode Compiler2::compileTemplate(TokenReader& reader, EscapeMode em) {
+		EscapeMode md = curEscapeMode;
+		curEscapeMode = em;
+		try {
+			return compileTemplateText(reader.getLocation(), reader);
+			curEscapeMode=md;
+		} catch (...) {
+			curEscapeMode=md;
+			throw;
+		}
+	}
+
 	PExprNode Compiler2::compileMemberAccessOp(PExprNode nd, TokenReader& reader)
 	{
 		ExprLocation loc = reader.getLocation();
@@ -779,6 +805,9 @@ namespace Tempe {
 		PExprNode var = compileUNARSuffix(reader);
 		PExprNode catchPart = compileExprSeq(reader);
 		reader.leaveLevel();
+		if (reader.getNext() == TokenReader::kwEnd) {
+			reader.accept();
+		}
 		return (new(alloc)Oper_TryCatch(reader.getLocation()))
 			->setBranch(0, tryPart)
 			->setBranch(1, var)
@@ -1026,7 +1055,7 @@ namespace Tempe {
 						}
 					}
 					else {
-
+						throwExpectedError(loc, TokenReader::symbCBrace);
 					}
 				}
 			}
@@ -1034,8 +1063,7 @@ namespace Tempe {
 				buffer.add(c);
 			}
 		} 
-		throwExpectedError(loc, TokenReader::symbEndTemplate);
-		throw;
+		return new(alloc) OutputText(loc, buffer);
 	}
 
 
@@ -1065,15 +1093,10 @@ namespace Tempe {
 		PExprNode body = compileExprSeq(reader);
 		if (reader.getNext() == TokenReader::kwEnd) {
 			reader.accept();
-			return (new(alloc)Oper_ForEach(loc))
-				->setBranch(0, expr)
-				->setBranch(1, body);
 		}
-		else {
-			throwExpectedError(loc, TokenReader::kwEnd);
-			throw;
-		}
-
+		return (new(alloc)Oper_ForEach(loc))
+			->setBranch(0, expr)
+			->setBranch(1, body);
 	}
 
 	Tempe::PExprNode Compiler2::compileConst(ExprLocation loc, TokenReader& reader)
@@ -1094,11 +1117,18 @@ namespace Tempe {
 			curEscapeMode = escMode;
 			PExprNode expr = compileAssign(reader);
 			curEscapeMode = prev;
+			if (reader.getNext() == TokenReader::kwEnd) {
+				reader.accept();
+			}
 			return expr;
 		}
 		else
 			throwExpectedError(loc, TokenReader::sLabel);
 		throw;
 	}
+
+EscapeMode Compiler2::getCtFromMime(ConstStrA contentType) {
+	return strMimeCt[contentType];
+}
 
 }

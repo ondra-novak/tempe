@@ -156,6 +156,11 @@ const IExprEnvironment& LocalScope::getGlobalEnv() const {
 
 void LocalScope::setCycleTimeout(natural tmInMs)
 {
+	cycleTm = tmInMs;
+}
+
+IExprEnvironment& LocalScope::getInternalGlobalEnv() {
+	return parent.getInternalGlobalEnv();
 
 }
 
@@ -246,14 +251,31 @@ IExprEnvironment & FakeGlobalScope::getGlobalEnv()
 	return *this;
 }
 
+IExprEnvironment& VarTable::getInternalGlobalEnv() {
+	return *this;
+}
+
 natural VarTable::getCycleTimeout() const
 {
 	return cycleTm;
 }
+
+
+const IExprEnvironment& VarTable::getInternalGlobalEnv() const {
+	return *this;
+}
+
+void VarTable::setCycleTimeout(natural tmInMs) {
+	cycleTm = tmInMs;
+}
+
+const IExprEnvironment& LocalScope::getInternalGlobalEnv() const {
+	return parent.getInternalGlobalEnv();
+}
+
 
 /* namespace Tempe */
 
 
 
 }
-

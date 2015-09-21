@@ -685,7 +685,7 @@ Value Oper_WithDo::calculate(IExprEnvironment& env) const {
 			return branch[1]->calculate(scope);
 		}
 		case isoFull: {
-			FakeGlobalScope scope(env.getGlobalEnv(), v);
+			FakeGlobalScope scope(env.getInternalGlobalEnv(), v);
 			return branch[1]->calculate(scope);
 		}
 		default:

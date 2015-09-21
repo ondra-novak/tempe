@@ -90,7 +90,8 @@ namespace Tempe {
 			kwOptional,
 			kwTemplate,
 			kwForeach,
-			kwConst,			
+			kwConst,
+			kwEcho,
 
 			eof,
 			begin
@@ -136,8 +137,8 @@ namespace Tempe {
 
 		virtual PExprNode compile(TokenReader &reader);
 		virtual PExprNode compileInteractive(TokenReader &reader);
+		virtual PExprNode compileTemplate(TokenReader &reader, EscapeMode em);
 
-	protected:
 		virtual PExprNode compileExprSeq(TokenReader& reader);
 		virtual PExprNode compileAssign(TokenReader& reader);
 		virtual PExprNode compileOR(TokenReader& reader);
@@ -146,32 +147,29 @@ namespace Tempe {
 		virtual PExprNode compilePLUSMINUS(TokenReader& reader);
 		virtual PExprNode compileMULTDIV(TokenReader& reader);
 		virtual PExprNode compileUNAR(TokenReader& reader);
-
-		PExprNode compileSubExpr(ExprLocation loc, TokenReader &reader);
-
-		PExprNode compileOpUnset(ExprLocation loc, TokenReader& reader);
-
-		PExprNode compileOpFirstDefined(ExprLocation loc, TokenReader &reader);
-
-//		virtual PExprNode compileIF(TokenReader& reader);
+		virtual PExprNode compileSubExpr(ExprLocation loc, TokenReader &reader);
+		virtual PExprNode compileOpUnset(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileOpFirstDefined(ExprLocation loc, TokenReader &reader);
 		virtual PExprNode compileUNARSuffix(TokenReader& reader);
-		PExprNode compileFunctOp(PExprNode nd, TokenReader& reader);
-		PExprNode compileArrayOp(PExprNode nd, TokenReader& reader);
-		PExprNode compileMemberAccessOp(PExprNode nd, TokenReader& reader);
-		PExprNode compileIF(ExprLocation loc, TokenReader& reader);
-		PExprNode compileOpTryCatch(ExprLocation loc, TokenReader& reader);
-		PExprNode compileOpWith(ExprLocation loc, TokenReader& reader);
-		PExprNode compileOpScope(ExprLocation loc, TokenReader& reader);
-		PExprNode compileOpObject(ExprLocation loc, TokenReader& reader);
-		PExprNode compileOpWhile(ExprLocation loc, TokenReader& reader);
-		PExprNode compileOpFunction(ExprLocation loc, TokenReader& reader);
-		void throwExpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols);
-		void throwUnexpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols);
-		PExprNode compileTemplateText(ExprLocation loc, TokenReader& reader);
-		PExprNode compileTemplateSubExpr(ExprLocation loc, TokenReader& reader);
-		PExprNode compileForEach(ExprLocation loc, TokenReader& reader);
-		PExprNode compileConst(ExprLocation loc, TokenReader& reader);
-		PExprNode compileTemplateCmd(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileFunctOp(PExprNode nd, TokenReader& reader);
+		virtual PExprNode compileArrayOp(PExprNode nd, TokenReader& reader);
+		virtual PExprNode compileMemberAccessOp(PExprNode nd, TokenReader& reader);
+		virtual PExprNode compileIF(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileOpTryCatch(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileOpWith(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileOpScope(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileOpObject(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileOpWhile(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileOpFunction(ExprLocation loc, TokenReader& reader);
+		virtual void throwExpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols);
+		virtual void throwUnexpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols);
+		virtual PExprNode compileTemplateText(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileTemplateSubExpr(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileForEach(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileConst(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileTemplateCmd(ExprLocation loc, TokenReader& reader);
+
+		static EscapeMode getCtFromMime(ConstStrA contentType);
 	public:
 		IRuntimeAlloc &alloc;
 		JSON::PFactory valueFactory;

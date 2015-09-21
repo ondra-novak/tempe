@@ -23,7 +23,10 @@ public:
 	virtual bool varExists(VarNameRef name) const;
 	virtual JSON::IFactory &getFactory() const;
 	virtual IExprEnvironment &getGlobalEnv() ;
+	virtual IExprEnvironment &getInternalGlobalEnv() ;
 	virtual const IExprEnvironment &getGlobalEnv() const ;
+	virtual const IExprEnvironment &getInternalGlobalEnv() const;
+
 
 	VarTable();
 
@@ -63,6 +66,8 @@ public:
 	virtual bool varExists(VarNameRef name) const;
 	virtual JSON::IFactory &getFactory() const;
 	virtual IExprEnvironment &getGlobalEnv() ;
+	virtual IExprEnvironment &getInternalGlobalEnv() ;
+	virtual const IExprEnvironment &getInternalGlobalEnv() const;
 	virtual const IExprEnvironment &getGlobalEnv() const ;
 
 	JSON::PNode getObject() const {return table;}

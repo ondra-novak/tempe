@@ -39,7 +39,9 @@ namespace Tempe {
 		virtual bool varExists(VarNameRef name) const = 0;
 		virtual JSON::IFactory &getFactory() const = 0;
 		virtual IExprEnvironment &getGlobalEnv() = 0;
+		virtual IExprEnvironment &getInternalGlobalEnv()  = 0;
 		virtual const IExprEnvironment &getGlobalEnv() const = 0;
+		virtual const IExprEnvironment &getInternalGlobalEnv() const = 0;
 		virtual natural getCycleTimeout() const = 0;
 		virtual IVtWriteIterator<char> *getTempeOutput()  = 0;
 
