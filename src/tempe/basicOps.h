@@ -352,6 +352,17 @@ namespace Tempe {
 		virtual Value calculate(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const { throw; }
 	};
+
+	class Oper_IncludeTrace: public AbstractNode {
+	public:
+		 Oper_IncludeTrace(const ExprLocation &loc, const FilePath &path, PExprNode nd)
+			:AbstractNode(loc),path(path),expr(nd) {}
+		virtual Value calculate(IExprEnvironment &env) const;
+
+	protected:
+		 FilePath path;
+		 PExprNode expr;
+	};
 }
 
 

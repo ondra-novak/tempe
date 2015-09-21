@@ -14,7 +14,25 @@
 
 namespace Tempe {
 
-class VarTable: public IExprEnvironment {
+class IncludeMap {
+public:
+
+};
+
+class AbstractEnv: public IExprEnvironment {
+public:
+
+
+	bool checkIncludeProcessed(const FilePath &) const;
+	void markIncludeProcessed(const FilePath &);
+
+	virtual void clear();
+
+protected:
+	Set<FilePath> includeMap;
+};
+
+class VarTable: public AbstractEnv {
 public:
 
 	virtual Value getVar(VarNameRef name) const;
@@ -23,10 +41,10 @@ public:
 	virtual bool varExists(VarNameRef name) const;
 	virtual JSON::IFactory &getFactory() const;
 	virtual IExprEnvironment &getGlobalEnv() ;
+	virtual const IExprEnvironment *getParentScope() const;
 	virtual IExprEnvironment &getInternalGlobalEnv() ;
 	virtual const IExprEnvironment &getGlobalEnv() const ;
 	virtual const IExprEnvironment &getInternalGlobalEnv() const;
-
 
 	VarTable();
 
@@ -55,7 +73,7 @@ protected:
 
 };
 
-class LocalScope: public IExprEnvironment {
+class LocalScope: public AbstractEnv {
 public:
 	LocalScope(IExprEnvironment &parent);
 	LocalScope(IExprEnvironment &parent, JSON::PNode import);
@@ -67,8 +85,12 @@ public:
 	virtual JSON::IFactory &getFactory() const;
 	virtual IExprEnvironment &getGlobalEnv() ;
 	virtual IExprEnvironment &getInternalGlobalEnv() ;
+	virtual const IExprEnvironment *getParentScope() const;
 	virtual const IExprEnvironment &getInternalGlobalEnv() const;
 	virtual const IExprEnvironment &getGlobalEnv() const ;
+
+	void clear();
+
 
 	JSON::PNode getObject() const {return table;}
 
@@ -96,6 +118,7 @@ public:
 	virtual Value getVar(VarNameRef name) const;
 	virtual bool varExists(VarNameRef name) const;
 	virtual IExprEnvironment &getGlobalEnv();
+	virtual const IExprEnvironment *getParentScope() const;
 
 };
 

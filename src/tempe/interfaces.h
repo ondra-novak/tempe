@@ -40,10 +40,15 @@ namespace Tempe {
 		virtual JSON::IFactory &getFactory() const = 0;
 		virtual IExprEnvironment &getGlobalEnv() = 0;
 		virtual IExprEnvironment &getInternalGlobalEnv()  = 0;
+		virtual const IExprEnvironment *getParentScope() const = 0;
 		virtual const IExprEnvironment &getGlobalEnv() const = 0;
 		virtual const IExprEnvironment &getInternalGlobalEnv() const = 0;
 		virtual natural getCycleTimeout() const = 0;
 		virtual IVtWriteIterator<char> *getTempeOutput()  = 0;
+		virtual bool checkIncludeProcessed(const FilePath &) const = 0;
+		virtual void markIncludeProcessed(const FilePath &)  = 0;
+
+		virtual void clear() = 0;
 
 
 		virtual ~IExprEnvironment() {}

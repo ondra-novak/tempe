@@ -10,7 +10,6 @@
 
 #include "lightspeed/base/streams/standardIO.tcc"
 #include "tempe/varTable.h"
-#include "tempe/commentRemover.h"
 #include "lightspeed/base/iter/iteratorFilter.tcc"
 #include <lightspeed/utils/json/jsonfast.tcc>
 

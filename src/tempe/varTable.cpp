@@ -95,6 +95,7 @@ void VarTable::setStaticVar(VarNameRef name, const Value val) {
 void VarTable::clear() {
 	table.clear();
 	table = factory->newClass();
+	AbstractEnv::clear();
 }
 
 void VarTable::clearStatic() {
@@ -162,6 +163,15 @@ void LocalScope::setCycleTimeout(natural tmInMs)
 IExprEnvironment& LocalScope::getInternalGlobalEnv() {
 	return parent.getInternalGlobalEnv();
 
+}
+
+const IExprEnvironment* LocalScope::getParentScope() const {
+	return &parent;
+}
+
+void LocalScope::clear() {
+	table = factory->object();
+	AbstractEnv::clear();
 }
 
 LightSpeed::natural LocalScope::getCycleTimeout() const
@@ -255,6 +265,10 @@ IExprEnvironment& VarTable::getInternalGlobalEnv() {
 	return *this;
 }
 
+const IExprEnvironment* VarTable::getParentScope() const {
+	return 0;
+}
+
 natural VarTable::getCycleTimeout() const
 {
 	return cycleTm;
@@ -276,6 +290,25 @@ const IExprEnvironment& LocalScope::getInternalGlobalEnv() const {
 
 /* namespace Tempe */
 
-
+bool AbstractEnv::checkIncludeProcessed(const FilePath&f) const {
+	if (includeMap.find(f) != 0) return true;
+	const IExprEnvironment *p = getParentScope();
+	if (p) return p->checkIncludeProcessed(f);
+	else return false;
 
 }
+
+void AbstractEnv::markIncludeProcessed(const FilePath&f) {
+	includeMap.insert(f);
+}
+
+void AbstractEnv::clear() {
+	includeMap.clear();
+}
+
+const IExprEnvironment* FakeGlobalScope::getParentScope() const {
+	return 0;
+}
+
+}
+

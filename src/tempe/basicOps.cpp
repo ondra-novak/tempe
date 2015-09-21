@@ -877,6 +877,14 @@ Tempe::Value Oper_ForEach::calculate(IExprEnvironment &env) const
 	return JSON::getNullNode();
 }
 
+Value Oper_IncludeTrace::calculate(IExprEnvironment& env) const {
+	if (env.checkIncludeProcessed(path)) return JSON::getNullNode();
+	else {
+		env.markIncludeProcessed(path);
+		return expr->calculate(env);
+	}
+}
+
 
 }
 

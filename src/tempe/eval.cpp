@@ -1,6 +1,6 @@
 #include "eval.h"
 #include "exceptions.h"
-#include "compiler2.h"
+#include "compiler.h"
 #include <lightspeed/base/streams/memfile.h>
 #include "varTable.h"
 

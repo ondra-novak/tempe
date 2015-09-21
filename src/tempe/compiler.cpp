@@ -584,6 +584,9 @@ namespace Tempe {
 			case TokenReader::kwForeach:
 				reader.accept();
 				return compileForEach(loc, reader);
+			case TokenReader::kwImport:
+				reader.accept();
+				return compileInclude(loc,reader);
 			case TokenReader::kwTemplate:
 				reader.accept();
 				return compileTemplateCmd(loc, reader);
@@ -1127,8 +1130,27 @@ namespace Tempe {
 		throw;
 	}
 
+PExprNode Compiler2::compileInclude(ExprLocation loc, TokenReader& reader) {
+		PExprNode expr = compileAssign(reader);
+
+		LocalScope scope(static_cast<IExprEnvironment &>(constContext));
+		Value v = expr->calculate(scope);
+		ConstStrA name = v->getStringUtf8();
+		try {
+			std::pair<PExprNode,FilePath> nx = loadCode(loc,name);
+			return new(alloc) Oper_IncludeTrace(loc,nx.second,nx.first);
+		} catch (LightSpeed::Exception &e) {
+			throw ParseError(THISLOCATION, loc, ConstStrA("Unable to open file: ") + name)
+					<< e;
+		}
+}
+
 EscapeMode Compiler2::getCtFromMime(ConstStrA contentType) {
 	return strMimeCt[contentType];
+}
+
+std::pair<PExprNode,FilePath> Compiler2::loadCode(ExprLocation loc, ConstStrA name) {
+	throw ErrorMessageException(THISLOCATION, "No source repository is available");
 }
 
 }

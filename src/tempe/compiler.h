@@ -168,8 +168,11 @@ namespace Tempe {
 		virtual PExprNode compileForEach(ExprLocation loc, TokenReader& reader);
 		virtual PExprNode compileConst(ExprLocation loc, TokenReader& reader);
 		virtual PExprNode compileTemplateCmd(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileInclude(ExprLocation loc, TokenReader &reader);
 
 		static EscapeMode getCtFromMime(ConstStrA contentType);
+
+		virtual std::pair<PExprNode,FilePath> loadCode(ExprLocation loc, ConstStrA name);
 	public:
 		IRuntimeAlloc &alloc;
 		JSON::PFactory valueFactory;
