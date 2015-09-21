@@ -18,6 +18,7 @@ namespace Tempe {
 	public:
 
 		Constant(const ExprLocation &loc, Value val);
+		virtual bool tryToEvalConst(IExprEnvironment&, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env) const;
 	protected:
 		Value val;
@@ -67,7 +68,8 @@ namespace Tempe {
 	class Oper_Fn1: public NaryNode<1> {
 	public:
 		typedef Value (*Fn)(IExprEnvironment &, const Value &);
-		Oper_Fn1(const ExprLocation &loc,Fn fn):NaryNode<1>(loc),fn(fn) {}
+		Oper_Fn1(const ExprLocation &loc, Fn fn) :NaryNode<1>(loc), fn(fn) {}
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
 	protected:
 		Fn fn;
@@ -78,6 +80,7 @@ namespace Tempe {
 		typedef Value (*Fn)(IExprEnvironment &, const Value &, const Value &);
 		Oper_Fn2(const ExprLocation &loc,Fn fn):NaryNode<2>(loc),fn(fn) {}
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 	protected:
 		Fn fn;
 	};
@@ -87,6 +90,7 @@ namespace Tempe {
 		typedef Value (*Fn)(IExprEnvironment &,const Value &, const Value &, const Value &);
 		Oper_Fn3(const ExprLocation &loc,Fn fn):NaryNode<3>(loc),fn(fn) {}
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 	protected:
 		Fn fn;
 	};
@@ -96,6 +100,7 @@ namespace Tempe {
 		typedef Value (*Fn)(IExprEnvironment &,const Value &, const Value &, const Value &, const Value &);
 		Oper_Fn4(const ExprLocation &loc,Fn fn):NaryNode<4>(loc),fn(fn) {}
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 	protected:
 		Fn fn;
 	};
@@ -142,6 +147,7 @@ namespace Tempe {
 	class Oper_Or: public NaryNode<2> {
 	public:
 		Oper_Or(const ExprLocation &loc):NaryNode<2>(loc) {}
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
 	};
@@ -149,6 +155,7 @@ namespace Tempe {
 	class Oper_And: public NaryNode<2> {
 	public:
 		Oper_And(const ExprLocation &loc):NaryNode<2>(loc) {}
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
 	};
@@ -156,6 +163,7 @@ namespace Tempe {
 	class Oper_If: public NaryNode<3> {
 	public:
 		Oper_If(const ExprLocation &loc):NaryNode<3>(loc) {}
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
 	};
@@ -185,6 +193,7 @@ namespace Tempe {
 	public:
 		Oper_IsNull(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 	};
 
 	class Oper_Comma: public NaryNode<2> {
@@ -197,6 +206,7 @@ namespace Tempe {
 	class Oper_Cycle: public NaryNode<1> {
 	public:
 		Oper_Cycle(const ExprLocation &loc):NaryNode<1>(loc) {}
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
 	};
@@ -240,26 +250,19 @@ namespace Tempe {
 
 	class Oper_WithDo: public NaryNode<2> {
 	public:
-		Oper_WithDo(const ExprLocation &loc):NaryNode<2>(loc) {}
+		enum Isolation {
+			isoDefault,
+			isoReadonly,
+			isoFull,
+		};
+
+		Oper_WithDo(const ExprLocation &loc, Isolation isol) :NaryNode<2>(loc),isol(isol) {}
 		virtual Value calculate(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+
+		Isolation isol;
 	};
 
-	class Oper_WithDoJoin: public AbstractNode {
-	public:
-		Oper_WithDoJoin(const ExprLocation &loc, PExprNode nd):AbstractNode(loc),nd(nd) {}
-		virtual Value calculate(IExprEnvironment &env) const;
-	protected:
-		PExprNode nd;
-	};
-
-	class Oper_WithDoMap: public AbstractNode {
-		public:
-			Oper_WithDoMap(const ExprLocation &loc, PExprNode nd):AbstractNode(loc),nd(nd) {}
-			virtual Value calculate(IExprEnvironment &env) const;
-		protected:
-			PExprNode nd;
-		};
 
 	class Oper_Scope: public NaryNode<1> {
 	public:
@@ -341,6 +344,13 @@ namespace Tempe {
 	public:
 		Oper_Link(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
+	};
+
+	class Oper_ForEach : public NaryNode<2>{
+	public:
+		Oper_ForEach(const ExprLocation &loc) : NaryNode<2>(loc) {}
+		virtual Value calculate(IExprEnvironment &env) const;
+		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const { throw; }
 	};
 }
 

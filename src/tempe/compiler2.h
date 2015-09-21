@@ -2,6 +2,9 @@
 #include "interfaces.h"
 #include <lightspeed/base/containers/constStr.h>
 #include <lightspeed/base/containers/autoArray.h>
+#include "escapeMode.h"
+#include "lightspeed/base/namedEnum.h"
+#include "varTable.h"
 
 namespace Tempe {
 
@@ -14,6 +17,7 @@ namespace Tempe {
 
 			sValue,
 			sVarname,
+			sLabel,
 
 			symbSemicolon,  ///< symbol ;
 			symbAsssign,		///< symbol :=
@@ -43,7 +47,8 @@ namespace Tempe {
 			symbDblColon,
 			symbQColon,
 			symbHash,
-			symbEscape,
+			symbBeginTemplate,
+			symbEndTemplate,
 			symbUnknown,
 			symbThreeDots,
 			
@@ -83,6 +88,10 @@ namespace Tempe {
 			kwSet,
 			kwDo,
 			kwOptional,
+			kwTemplate,
+			kwForeach,
+			kwConst,			
+
 			eof,
 			begin
 
@@ -101,6 +110,8 @@ namespace Tempe {
 		void leaveLevel();
 		void resetLevel(bool interactive);
 
+		void expectLabel();
+
 	protected:
 		void eatWhite();
 		void readNext();
@@ -109,6 +120,7 @@ namespace Tempe {
 		JSON::PFactory factory;
 
 		natural level;
+		bool expLabel;
 
 		
 
@@ -155,9 +167,20 @@ namespace Tempe {
 		PExprNode compileOpFunction(ExprLocation loc, TokenReader& reader);
 		void throwExpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols);
 		void throwUnexpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols);
+		PExprNode compileTemplateText(ExprLocation loc, TokenReader& reader);
+		PExprNode compileTemplateSubExpr(ExprLocation loc, TokenReader& reader);
+		PExprNode compileForEach(ExprLocation loc, TokenReader& reader);
+		PExprNode compileConst(ExprLocation loc, TokenReader& reader);
+		PExprNode compileTemplateCmd(ExprLocation loc, TokenReader& reader);
 	public:
 		IRuntimeAlloc &alloc;
 		JSON::PFactory valueFactory;
+		EscapeMode curEscapeMode;
+		AutoArray<char> buffer;
 
+		VarTable globalConstContext;
+		FakeGlobalScope constContext;
 	};
+
+	extern NamedEnum<EscapeMode> strEscapeMode;
 }

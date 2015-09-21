@@ -36,7 +36,8 @@ public:
 	void setCycleTimeout(natural tmInMs);
 	virtual natural getCycleTimeout() const ;
 
-	virtual IVtIterator<char> *getTempeOutput() const { return 0; }
+	virtual IVtWriteIterator<char> *getTempeOutput()  { return 0; }	
+
 
 protected:
 
@@ -69,8 +70,9 @@ public:
 	void setCycleTimeout(natural tmInMs);
 	virtual natural getCycleTimeout() const;
 
-	virtual IVtIterator<char> *getTempeOutput() const { return parent.getTempeOutput(); }
+	virtual IVtWriteIterator<char> *getTempeOutput()  { return parent.getTempeOutput(); }
 protected:
+
 	IExprEnvironment &parent;
 	JSON::PFactory factory;
 	JSON::PNode table;
@@ -78,6 +80,17 @@ protected:
 private:
 	LocalScope(const LocalScope &parent);
 	LocalScope &operator=(const LocalScope &parent);
+
+};
+
+class FakeGlobalScope : public LocalScope {
+public:
+	FakeGlobalScope(IExprEnvironment &parent);
+	FakeGlobalScope(IExprEnvironment &parent, JSON::PNode import);
+
+	virtual Value getVar(VarNameRef name) const;
+	virtual bool varExists(VarNameRef name) const;
+	virtual IExprEnvironment &getGlobalEnv();
 
 };
 

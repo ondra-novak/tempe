@@ -41,6 +41,8 @@ namespace Tempe {
 		virtual IExprEnvironment &getGlobalEnv() = 0;
 		virtual const IExprEnvironment &getGlobalEnv() const = 0;
 		virtual natural getCycleTimeout() const = 0;
+		virtual IVtWriteIterator<char> *getTempeOutput()  = 0;
+
 
 		virtual ~IExprEnvironment() {}
 	};
@@ -58,6 +60,15 @@ namespace Tempe {
 
 		virtual Value calculate(IExprEnvironment &env) const = 0;
 		virtual ExprLocation getSourceLocation() const = 0;
+		///tries to evaluate subtree if it can be collapsed into a const
+		/**
+		  @param val variable where result will be posted
+		  @retval true evaluation is possible, val contains result
+		  @retval false evaluation is not possible 
+
+		  @note operator ; cannot be evaluated, because its benefit is in side effects
+		 */
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const = 0;
 
 		virtual ~IExprNode() {}
 	};
@@ -69,6 +80,8 @@ namespace Tempe {
 
 		AbstractNode(const ExprLocation &loc):loc(loc) {}
 		virtual ExprLocation getSourceLocation() const {return loc;}
+		///unknown nodes cannot be evaluated into const
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const { return false; }
 	protected:
 		ExprLocation loc;
 	};
@@ -115,8 +128,6 @@ namespace Tempe {
 	protected:
 		PExprNode branch[n];
 	};
-
-
 
 }
 

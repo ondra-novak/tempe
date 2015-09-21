@@ -145,12 +145,13 @@
     <ClCompile Include="src\tempe\commentRemover.cpp" />
     <ClCompile Include="src\tempe\compiler.cpp" />
     <ClCompile Include="src\tempe\compiler2.cpp" />
+    <ClCompile Include="src\tempe\eval.cpp" />
     <ClCompile Include="src\tempe\exceptions.cpp" />
     <ClCompile Include="src\tempe\functions.cpp" />
     <ClCompile Include="src\tempe\functionVar.cpp" />
     <ClCompile Include="src\tempe\linkValue.cpp" />
     <ClCompile Include="src\tempe\SourceReader.cpp" />
-    <ClCompile Include="src\tempe\tempeCompiler.cpp" />
+    <ClCompile Include="src\tempe\tempeOps.cpp" />
     <ClCompile Include="src\tempe\varTable.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -158,6 +159,8 @@
     <ClInclude Include="src\tempe\commentRemover.h" />
     <ClInclude Include="src\tempe\compiler.h" />
     <ClInclude Include="src\tempe\compiler2.h" />
+    <ClInclude Include="src\tempe\escapeMode.h" />
+    <ClInclude Include="src\tempe\eval.h" />
     <ClInclude Include="src\tempe\exceptions.h" />
     <ClInclude Include="src\tempe\functions.h" />
     <ClInclude Include="src\tempe\functionVar.h" />
@@ -165,7 +168,7 @@
     <ClInclude Include="src\tempe\linkValue.h" />
     <ClInclude Include="src\tempe\sourceManager.h" />
     <ClInclude Include="src\tempe\SourceReader.h" />
-    <ClInclude Include="src\tempe\tempeCompiler.h" />
+    <ClInclude Include="src\tempe\tempeOps.h" />
     <ClInclude Include="src\tempe\varTable.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

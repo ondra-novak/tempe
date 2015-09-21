@@ -40,6 +40,12 @@ Constant::Constant(const ExprLocation &loc, Value val)
 	:AbstractNode(loc),val(val) {
 }
 
+bool Constant::tryToEvalConst(IExprEnvironment&, Value &val) const
+{
+	val = this->val;
+	return true;
+}
+
 Value Constant::calculate(IExprEnvironment& env) const {
 	return val;
 }
@@ -55,6 +61,17 @@ Value VariableRef::calculate(IExprEnvironment& env) const {
 }
 
 
+bool Oper_Fn1::tryToEvalConst(IExprEnvironment &env, Value &val) const
+{
+	if (branch[0]->tryToEvalConst(env, val)) {
+		val = fn(env, val);
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 Value Oper_Fn1::calculate(IExprEnvironment& env,
 		const Value* subResults) const try {
 		return fn(env,subResults[0]);
@@ -67,36 +84,97 @@ Value Oper_Fn1::calculate(IExprEnvironment& env,
 
 
 Value Oper_Fn2::calculate(IExprEnvironment& env,
-		const Value* subResults) const try {
-		return fn(env,subResults[0],subResults[1]);
-		} catch (LightSpeed::Exception &e) {
-		throwScriptException(THISLOCATION,loc,e);throw;
-	} catch (const std::exception &e) {
-		throwScriptException(THISLOCATION,loc,e);throw;
+	const Value* subResults) const {
+	try {
+		return fn(env, subResults[0], subResults[1]);
 	}
+	catch (LightSpeed::Exception &e) {
+		throwScriptException(THISLOCATION, loc, e); throw;
+	}
+	catch (const std::exception &e) {
+		throwScriptException(THISLOCATION, loc, e); throw;
+	}
+}
+
+bool Oper_Fn2::tryToEvalConst(IExprEnvironment &env, Value &val) const
+{
+	Value v1, v2;
+	if (branch[0]->tryToEvalConst(env,v1) && branch[1]->tryToEvalConst(env,v2)) {
+		val = fn(env, v1, v2);
+		return true;
+	}
+	else {
+		return false;
+	}
+}
 
 Value Oper_Fn3::calculate(IExprEnvironment& env,
-		const Value* subResults) const try {
-		return fn(env,subResults[0],subResults[1],subResults[2]);
-		} catch (LightSpeed::Exception &e) {
-		throwScriptException(THISLOCATION,loc,e);throw;
-	} catch (const std::exception &e) {
-		throwScriptException(THISLOCATION,loc,e);throw;
+	const Value* subResults) const {
+	try {
+		return fn(env, subResults[0], subResults[1], subResults[2]);
+	}
+	catch (LightSpeed::Exception &e) {
+		throwScriptException(THISLOCATION, loc, e); throw;
+	}
+	catch (const std::exception &e) {
+		throwScriptException(THISLOCATION, loc, e); throw;
+	}
+}
+
+
+bool Oper_Fn3::tryToEvalConst(IExprEnvironment &env, Value &val) const
+{
+	Value v1, v2, v3;
+	if (branch[0]->tryToEvalConst(env,v1) && branch[1]->tryToEvalConst(env,v2) && branch[1]->tryToEvalConst(env,v3)) {
+		val = fn(env, v1, v2,v3);
+		return true;
+	}
+	else {
+		return false;
 	}
 
+}
 
 Value Oper_Fn4::calculate(IExprEnvironment& env,
-		const Value* subResults) const try {
-		return fn(env,subResults[0],subResults[1],subResults[2],subResults[3]);
-		} catch (LightSpeed::Exception &e) {
-		throwScriptException(THISLOCATION,loc,e);throw;
-	} catch (const std::exception &e) {
-		throwScriptException(THISLOCATION,loc,e);throw;
+	const Value* subResults) const {
+	try {
+		return fn(env, subResults[0], subResults[1], subResults[2], subResults[3]);
+	}
+	catch (LightSpeed::Exception &e) {
+		throwScriptException(THISLOCATION, loc, e); throw;
+	}
+	catch (const std::exception &e) {
+		throwScriptException(THISLOCATION, loc, e); throw;
+	}
+}
+
+
+
+bool Oper_Fn4::tryToEvalConst(IExprEnvironment &env, Value &val) const
+{
+	Value v1, v2, v3, v4;
+	if (branch[0]->tryToEvalConst(env, v1) && branch[1]->tryToEvalConst(env, v2) && branch[1]->tryToEvalConst(env, v3) && branch[1]->tryToEvalConst(env, v4)) {
+		val = fn(env, v1, v2, v3,v4);
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+bool Oper_Or::tryToEvalConst(IExprEnvironment &env, Value &val) const
+	{
+		Value v;
+		if (branch[0]->tryToEvalConst(env,v) && v->getBool()) {
+			val = v;
+			return true;
+		}
+		else {
+			return branch[1]->tryToEvalConst(env,val);
+		}
 	}
 
-
-
-Value Oper_Or::calculate(IExprEnvironment& env) const {
+	Value Oper_Or::calculate(IExprEnvironment& env) const {
 	try {
 		Value k = branch[0]->calculate(env);
 		if (k->getBool()) return k;
@@ -109,7 +187,35 @@ Value Oper_Or::calculate(IExprEnvironment& env) const {
 	throw;
 }
 
-Value Oper_And::calculate(IExprEnvironment& env) const {
+	bool Oper_And::tryToEvalConst(IExprEnvironment &env, Value &val) const
+	{
+		Value v;
+		if (branch[0]->tryToEvalConst(env,v)) {
+			if (v->getBool()) {
+				return branch[1]->tryToEvalConst(env,val);
+			}
+			else {
+				val = v;
+				return true;
+			}
+		}
+		else
+			return false;
+	}
+
+	bool Oper_If::tryToEvalConst(IExprEnvironment &env, Value &val) const
+	{
+		Value v;
+		if (branch[0]->tryToEvalConst(env,v)) {
+			if (v->getBool()) return branch[1]->tryToEvalConst(env,val);
+			else return branch[2]->tryToEvalConst(env,val);
+		}
+		else
+			return false;
+	}
+
+
+	Value Oper_And::calculate(IExprEnvironment& env) const {
 	try {
 		Value k = branch[0]->calculate(env);
 		if (!k->getBool()) return k;
@@ -177,6 +283,18 @@ Value Oper_Exist::calculate(IExprEnvironment& env) const {
 		throwScriptException(THISLOCATION,loc,e);throw;
 	}	throw;
 
+}
+
+bool Oper_Cycle::tryToEvalConst(IExprEnvironment &env, Value &val) const
+{
+	if (branch[0]->tryToEvalConst(env,val)) {
+		if (val->getBool() == false) return true;
+		else throw ParseError(THISLOCATION, loc, "Infinite cycle");
+	}
+	else {
+		return false;
+	}
+	
 }
 
 Value Oper_Cycle::calculate(IExprEnvironment& env) const {
@@ -265,7 +383,18 @@ Value Oper_IsNull::calculate(IExprEnvironment& env,
 }
 
 
-class CodeException: public Exception {
+bool Oper_IsNull::tryToEvalConst(IExprEnvironment &env, Value &val) const
+{
+	if (branch[0]->tryToEvalConst(env,val)) {
+		val = env.getFactory().newValue(val->isNull());
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+class CodeException : public Exception {
 public:
 	CodeException(const ProgramLocation &loc, const Value &val):LightSpeed::Exception(loc),val(val) {}
 	~CodeException() throw() {}
@@ -544,22 +673,27 @@ Value Oper_WithDo::calculate(IExprEnvironment& env) const {
 
 	v = convertLink(v);
 
-	Value null = env.getFactory().newNullNode();
-	Value res = null;
 
 	if (v->isObject()) {
-		WithScope scope(env,v,0,1,res);
-		return branch[1]->calculate(scope);
-	} else if (v->isArray()) {
-		for (natural i = 0; i < v->length(); i++) {
-			Value sub = v[i];
-			if (sub->isObject()) {
-				WithScope scope(env,sub,i,v->length(),res);
-				res = branch[1]->calculate(scope);
-			}
+		switch (isol) {
+		case isoDefault: {
+			LocalScope scope(env, v);
+			return branch[1]->calculate(scope);
 		}
-		return res;
-	} else {
+		case isoReadonly: {
+			FakeGlobalScope scope(env, v);
+			return branch[1]->calculate(scope);
+		}
+		case isoFull: {
+			FakeGlobalScope scope(env.getGlobalEnv(), v);
+			return branch[1]->calculate(scope);
+		}
+		default:
+			throw OperationIsUndefined(THISLOCATION);
+			break;
+		}
+	}
+	else {
 		throw OperationIsUndefined(THISLOCATION);
 	}
 
@@ -577,23 +711,6 @@ Value Oper_Object::calculate(IExprEnvironment& env) const {
 	return scope.getObject();
 }
 
-Value Oper_WithDoJoin::calculate(IExprEnvironment& env) const {
-	WithScope &scp = env.getIfc<WithScope>();
-	Value newVal = nd->calculate(env);
-	if (scp.prevVal == nil || scp.prevVal->isNull()) return newVal;
-	else {
-		return operPlus(env,scp.prevVal,newVal);
-	}
-}
-
-Value Oper_WithDoMap::calculate(IExprEnvironment& env) const {
-	WithScope &scp = env.getIfc<WithScope>();
-	Value newVal = nd->calculate(env);
-	Value container = scp.prevVal;
-	if (container == nil || container->isNull()) container = env.getFactory().array();
-	container->add(newVal);
-	return container;
-}
 
 Value Oper_ArrayIndex::calculate(IExprEnvironment& env, const Value* subResults) const {
 	if (subResults[0]->isArray()) {
@@ -734,6 +851,32 @@ Oper_ArrayAppend::ValueWithContext Oper_ArrayAppend::getValueWithContext(
 Value Oper_ArrayAppend::calculate(IExprEnvironment& env,const Value* subResults) const {
 	throw OperationIsUndefined(THISLOCATION) << ScriptException(THISLOCATION,loc);
 }
+
+Tempe::Value Oper_ForEach::calculate(IExprEnvironment &env) const
+{
+	Value v = branch[0]->calculate(env);
+	v = convertLink(v);
+	LocalScope scope(env);
+	scope.setVar("count", scope.getFactory().newValue(v->getEntryCount()));
+	for (JSON::Iterator iter = v->getFwIter(); iter.hasItems();) {
+		const JSON::KeyValue kv = iter.getNext();
+		scope.setVar("this", kv.node);
+		if (kv.getKeyType() == JSON::IKey::index)
+			scope.setVar("index", scope.getFactory().newValue(kv.getIndex()));
+		else
+			scope.setVar("index", scope.getFactory().newValue(kv.getStringKey()));
+		if (kv->isObject()) {
+			LocalScope objscope(env, kv.node);
+			LocalScope blockScope(objscope, scope.getObject());
+			branch[1]->calculate(blockScope);
+		}
+		else {
+			branch[1]->calculate(scope);
+		}
+	}
+	return JSON::getNullNode();
+}
+
 
 }
 

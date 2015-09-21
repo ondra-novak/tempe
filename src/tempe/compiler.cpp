@@ -303,16 +303,10 @@ PExprNode Compiler::compileUNAR(SourceReader& reader) {
 		LevelControl levControl(reader,level);
 		PExprNode expr = compileUNARSuffix(reader);
 		PExprNode cmdlist;
-		if (reader(" join\b%")) {
-			cmdlist = new(alloc) Oper_WithDoJoin(reader.getLocation(),compile(reader));
-		} else if (reader(" map\b%")) {
-				cmdlist = new(alloc) Oper_WithDoMap(reader.getLocation(),compile(reader));
-		} else {
 			cmdlist = compile(reader);
-		}
 		NegLevelControl _levControl(reader,level);
 		if (!reader("%(*)[\r\n\t ]%end %")) throw ParseError(THISLOCATION,reader.getLocation(),"Expecting end");
-		return (new(alloc) Oper_WithDo(reader.getLocation()))->setBranch(0,expr)
+		return (new(alloc) Oper_WithDo(reader.getLocation(),Oper_WithDo::isoDefault))->setBranch(0,expr)
 				->setBranch(1,cmdlist);
 	} else if (reader(" json%")) {
 		LevelControl levControl(reader,level);

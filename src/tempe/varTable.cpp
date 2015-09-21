@@ -15,6 +15,7 @@
 #include "exceptions.h"
 #include "functions.h"
 #include "functionVar.h"
+#include "eval.h"
 
 namespace Tempe {
 
@@ -129,7 +130,7 @@ void LocalScope::unset(VarNameRef name) {
 
 
 bool LocalScope::varExists(VarNameRef name) const {
-	return table->getVariable(name) || parent.varExists(name);
+	return name == "_global" || name == "_current" || name=="_super" || table->getVariable(name) || parent.varExists(name);
 }
 
 JSON::IFactory& LocalScope::getFactory() const {
@@ -168,6 +169,8 @@ LocalScope::LocalScope(IExprEnvironment& parent, JSON::PNode import)
 :parent(parent),factory(&parent.getFactory()),table(import)
 {
 }
+
+
 
 void VarTable::initFunctions() {
 	IRuntimeAlloc &alloc = *factory->getAllocator();
@@ -209,6 +212,38 @@ void VarTable::initFunctions() {
 	setVar("scan", Value(createFnCall(alloc,&fnScan)));
 	setVar("chr", Value(createFnCall(alloc,&fnChr)));
 	setVar("array", Value(createFnCall(alloc,&fnArray)));
+	setVar("eval", Value(createFnCall(alloc, &fnEval)));
+}
+
+
+FakeGlobalScope::FakeGlobalScope(IExprEnvironment &parent) :LocalScope(parent)
+{
+
+}
+
+FakeGlobalScope::FakeGlobalScope(IExprEnvironment &parent, JSON::PNode import) : LocalScope(parent,import)
+{
+
+}
+
+Value FakeGlobalScope::getVar(VarNameRef name) const
+{
+	if (name == "_current") return table;
+	if (name == "_super") throw VariableNotExistException(THISLOCATION, name);
+	if (name == "_global") return table;
+	return LocalScope::getVar(name);
+
+}
+
+bool FakeGlobalScope::varExists(VarNameRef name) const
+{
+	if (name == "_super") return false;
+	else return LocalScope::varExists(name);
+}
+
+IExprEnvironment & FakeGlobalScope::getGlobalEnv()
+{
+	return *this;
 }
 
 natural VarTable::getCycleTimeout() const
@@ -217,6 +252,7 @@ natural VarTable::getCycleTimeout() const
 }
 
 /* namespace Tempe */
+
 
 
 }
