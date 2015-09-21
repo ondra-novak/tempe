@@ -8,14 +8,13 @@
 #include "test.h"
 
 
-#include "tempe/compiler.h"
 #include "lightspeed/base/streams/standardIO.tcc"
 #include "tempe/varTable.h"
 #include "tempe/commentRemover.h"
 #include "lightspeed/base/iter/iteratorFilter.tcc"
 #include <lightspeed/utils/json/jsonfast.tcc>
 
-#include "src/tempe/compiler2.h"
+#include "src/tempe/compiler.h"
 namespace TempeTest {
 
 using namespace Tempe;
