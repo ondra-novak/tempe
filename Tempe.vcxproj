@@ -142,11 +142,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\tempe\basicOps.cpp" />
-    <ClCompile Include="src\tempe\commentRemover.cpp" />
     <ClCompile Include="src\tempe\compiler.cpp" />
-    <ClCompile Include="src\tempe\compiler2.cpp" />
     <ClCompile Include="src\tempe\eval.cpp" />
     <ClCompile Include="src\tempe\exceptions.cpp" />
+    <ClCompile Include="src\tempe\fileCompiler.cpp" />
     <ClCompile Include="src\tempe\functions.cpp" />
     <ClCompile Include="src\tempe\functionVar.cpp" />
     <ClCompile Include="src\tempe\linkValue.cpp" />
@@ -156,12 +155,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\tempe\basicOps.h" />
-    <ClInclude Include="src\tempe\commentRemover.h" />
     <ClInclude Include="src\tempe\compiler.h" />
-    <ClInclude Include="src\tempe\compiler2.h" />
     <ClInclude Include="src\tempe\escapeMode.h" />
     <ClInclude Include="src\tempe\eval.h" />
     <ClInclude Include="src\tempe\exceptions.h" />
+    <ClInclude Include="src\tempe\fileCompiler.h" />
     <ClInclude Include="src\tempe\functions.h" />
     <ClInclude Include="src\tempe\functionVar.h" />
     <ClInclude Include="src\tempe\interfaces.h" />

@@ -326,7 +326,7 @@ namespace Tempe {
 		}
 	}
 
-	Compiler2::Compiler2(IRuntimeAlloc &alloc)
+	Compiler::Compiler(IRuntimeAlloc &alloc)
 		:alloc(alloc), valueFactory(JSON::create(alloc))
 		, curEscapeMode(emPlain), constContext(globalConstContext)
 
@@ -334,7 +334,7 @@ namespace Tempe {
 
 	}
 
-	PExprNode Compiler2::compile(TokenReader &reader)
+	PExprNode Compiler::compile(TokenReader &reader)
 	{
 		reader.resetLevel(false);
 		if (reader.getNext() == TokenReader::begin) 
@@ -346,7 +346,7 @@ namespace Tempe {
 		return nd;
 	}
 
-	PExprNode Compiler2::compileInteractive(TokenReader &reader)
+	PExprNode Compiler::compileInteractive(TokenReader &reader)
 	{
 		reader.resetLevel(true);
 		if (reader.getNext() == TokenReader::begin)
@@ -360,7 +360,7 @@ namespace Tempe {
 		
 	}
 
-	PExprNode Compiler2::compileExprSeq(TokenReader& reader)
+	PExprNode Compiler::compileExprSeq(TokenReader& reader)
 	{
 		PExprNode a = compileAssign(reader);
 		if (reader.getNext() == TokenReader::symbSemicolon) {
@@ -396,7 +396,7 @@ namespace Tempe {
 		}
 	}
 
-	PExprNode Compiler2::compileAssign(TokenReader& reader)
+	PExprNode Compiler::compileAssign(TokenReader& reader)
 	{
 		PExprNode a = compileOR(reader);
 		if (reader.getNext() == TokenReader::symbAsssign) {
@@ -421,7 +421,7 @@ namespace Tempe {
 		}
 	}
 
-	PExprNode Compiler2::compileOR(TokenReader& reader)
+	PExprNode Compiler::compileOR(TokenReader& reader)
 	{
 		PExprNode a = compileAND(reader);
 		if (reader.getNext() == TokenReader::kwOr) {
@@ -436,7 +436,7 @@ namespace Tempe {
 		}
 	}
 
-	PExprNode Compiler2::compileAND(TokenReader& reader)
+	PExprNode Compiler::compileAND(TokenReader& reader)
 	{
 		PExprNode a = compileRELAT(reader);
 		if (reader.getNext() == TokenReader::kwAnd) {
@@ -452,7 +452,7 @@ namespace Tempe {
 
 	}
 
-	PExprNode Compiler2::compileRELAT(TokenReader& reader)
+	PExprNode Compiler::compileRELAT(TokenReader& reader)
 	{
 		PExprNode nd = compilePLUSMINUS(reader);
 		Oper_Fn2::Fn fnpick;
@@ -473,7 +473,7 @@ namespace Tempe {
 		return (new(alloc)Oper_Fn2(loc, fnpick))->setBranch(0, nd)->setBranch(1, nd2);
 	}
 
-	PExprNode Compiler2::compilePLUSMINUS(TokenReader& reader)
+	PExprNode Compiler::compilePLUSMINUS(TokenReader& reader)
 	{
 		PExprNode nd = compileMULTDIV(reader);
 		Oper_Fn2::Fn fnpick;
@@ -492,7 +492,7 @@ namespace Tempe {
 
 	}
 
-	PExprNode Compiler2::compileMULTDIV(TokenReader& reader)
+	PExprNode Compiler::compileMULTDIV(TokenReader& reader)
 	{
 		PExprNode nd = compileUNARSuffix(reader);
 		Oper_Fn2::Fn fnpick;
@@ -512,7 +512,7 @@ namespace Tempe {
 
 	}
 
-	PExprNode Compiler2::compileUNAR(TokenReader& reader)
+	PExprNode Compiler::compileUNAR(TokenReader& reader)
 	{
 		ExprLocation loc = reader.getLocation();
 		switch (reader.getNext()) {
@@ -632,7 +632,7 @@ namespace Tempe {
 		}
 	}
 
-	PExprNode Compiler2::compileUNARSuffix(TokenReader& reader)
+	PExprNode Compiler::compileUNARSuffix(TokenReader& reader)
 	{
 		PExprNode nd = compileUNAR(reader);
 		do {
@@ -654,7 +654,7 @@ namespace Tempe {
 	
 	}
 
-	PExprNode Compiler2::compileFunctOp(PExprNode nd, TokenReader& reader)
+	PExprNode Compiler::compileFunctOp(PExprNode nd, TokenReader& reader)
 	{
 		ExprLocation loc = reader.getLocation();
 		reader.accept();
@@ -678,7 +678,7 @@ namespace Tempe {
 
 	}
 
-	PExprNode Compiler2::compileArrayOp(PExprNode nd, TokenReader& reader)
+	PExprNode Compiler::compileArrayOp(PExprNode nd, TokenReader& reader)
 	{
 		ExprLocation loc = reader.getLocation();
 		reader.accept();
@@ -698,7 +698,7 @@ namespace Tempe {
 		}
 	}
 
-	PExprNode Compiler2::compileTemplate(TokenReader& reader, EscapeMode em) {
+	PExprNode Compiler::compileTemplate(TokenReader& reader, EscapeMode em) {
 		EscapeMode md = curEscapeMode;
 		curEscapeMode = em;
 		try {
@@ -710,7 +710,7 @@ namespace Tempe {
 		}
 	}
 
-	PExprNode Compiler2::compileMemberAccessOp(PExprNode nd, TokenReader& reader)
+	PExprNode Compiler::compileMemberAccessOp(PExprNode nd, TokenReader& reader)
 	{
 		ExprLocation loc = reader.getLocation();
 		reader.accept();
@@ -721,7 +721,7 @@ namespace Tempe {
 		return new(alloc)Oper_MemberAccess(reader.getLocation(), nd, vname);
 	}
 
-	Tempe::PExprNode Compiler2::compileOpFirstDefined(ExprLocation loc, TokenReader &reader)
+	Tempe::PExprNode Compiler::compileOpFirstDefined(ExprLocation loc, TokenReader &reader)
 	{
 		RefCntPtr<VariadicNode> nd = new(alloc)Oper_FirstDefined(loc);
 		AutoArray<PExprNode, SmallAlloc<32> > branches;
@@ -735,7 +735,7 @@ namespace Tempe {
 		return nd.get();
 	}
 
-	Tempe::PExprNode Compiler2::compileOpUnset(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpUnset(ExprLocation loc, TokenReader& reader)
 	{
 		PExprNode nd = compileUNARSuffix(reader);
 		if (nd->getIfcPtr<IGetVarName>() == 0)
@@ -743,7 +743,7 @@ namespace Tempe {
 		return (new(alloc)Oper_Unset(loc))->setBranch(0, nd);
 	}
 
-	Tempe::PExprNode Compiler2::compileIF(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileIF(ExprLocation loc, TokenReader& reader)
 	{
 		reader.enterLevel();
 		PExprNode cond = compileAssign(reader);
@@ -787,7 +787,7 @@ namespace Tempe {
 		}
 	}
 
-	Tempe::PExprNode Compiler2::compileSubExpr(ExprLocation loc, TokenReader &reader)
+	Tempe::PExprNode Compiler::compileSubExpr(ExprLocation loc, TokenReader &reader)
 	{
 		reader.enterLevel();
 		PExprNode nd = compileExprSeq(reader);
@@ -798,7 +798,7 @@ namespace Tempe {
 		return nd;
 	}
 
-	Tempe::PExprNode Compiler2::compileOpTryCatch(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpTryCatch(ExprLocation loc, TokenReader& reader)
 	{
 		reader.enterLevel();
 		PExprNode tryPart = compileExprSeq(reader);
@@ -818,7 +818,7 @@ namespace Tempe {
 
 	}
 
-	Tempe::PExprNode Compiler2::compileOpWith(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpWith(ExprLocation loc, TokenReader& reader)
 	{
 		reader.enterLevel();
 		PExprNode expr = compileUNARSuffix(reader);
@@ -857,7 +857,7 @@ namespace Tempe {
 		}
 	}
 
-	Tempe::PExprNode Compiler2::compileOpScope(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpScope(ExprLocation loc, TokenReader& reader)
 	{
 		reader.enterLevel();
 		PExprNode body = compileExprSeq(reader);
@@ -874,7 +874,7 @@ namespace Tempe {
 	}
 
 
-	Tempe::PExprNode Compiler2::compileOpObject(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpObject(ExprLocation loc, TokenReader& reader)
 	{
 		reader.enterLevel();
 		PExprNode body = compileExprSeq(reader);
@@ -890,7 +890,7 @@ namespace Tempe {
 
 	}
 
-	Tempe::PExprNode Compiler2::compileOpWhile(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpWhile(ExprLocation loc, TokenReader& reader)
 	{
 		reader.enterLevel();
 		PExprNode cond = compileAssign(reader);
@@ -928,7 +928,7 @@ namespace Tempe {
 		
 	}
 
-	Tempe::PExprNode Compiler2::compileOpFunction(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpFunction(ExprLocation loc, TokenReader& reader)
 	{
 		if (reader.getNext() == TokenReader::symbOBracket) {
 			reader.accept();
@@ -995,7 +995,7 @@ namespace Tempe {
 	}
 
 
-	void Compiler2::throwExpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols)
+	void Compiler::throwExpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols)
 	{
 		AutoArray<char, SmallAlloc<256> > msg;
 		msg.append(ConstStrA("Expected: "));
@@ -1009,7 +1009,7 @@ namespace Tempe {
 		throw ParseError(THISLOCATION, loc, msg);
 	}
 
-	void Compiler2::throwUnexpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols)
+	void Compiler::throwUnexpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols)
 	{
 		AutoArray<char, SmallAlloc<256> > msg;
 		msg.append(ConstStrA("Unexpected: "));
@@ -1023,7 +1023,7 @@ namespace Tempe {
 		throw ParseError(THISLOCATION, loc, msg);
 	}
 
-	Tempe::PExprNode Compiler2::compileTemplateText(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileTemplateText(ExprLocation loc, TokenReader& reader)
 	{
 		buffer.clear();
 		SourceReader &srcrd = reader;
@@ -1071,7 +1071,7 @@ namespace Tempe {
 
 
 
-	Tempe::PExprNode Compiler2::compileTemplateSubExpr(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileTemplateSubExpr(ExprLocation loc, TokenReader& reader)
 	{
 		reader.expectLabel();
 		TokenReader::Symbol s = reader.getNext();
@@ -1090,7 +1090,7 @@ namespace Tempe {
 
 	//foreach x print(this.neco) end
 
-	Tempe::PExprNode Compiler2::compileForEach(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileForEach(ExprLocation loc, TokenReader& reader)
 	{
 		PExprNode expr = compileUNARSuffix(reader);
 		PExprNode body = compileExprSeq(reader);
@@ -1102,7 +1102,7 @@ namespace Tempe {
 			->setBranch(1, body);
 	}
 
-	Tempe::PExprNode Compiler2::compileConst(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileConst(ExprLocation loc, TokenReader& reader)
 	{
 		PExprNode expr = compileAssign(reader);
 
@@ -1110,7 +1110,7 @@ namespace Tempe {
 		return new(alloc)Constant(loc, expr->calculate(constContext));
 	}
 
-	Tempe::PExprNode Compiler2::compileTemplateCmd(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileTemplateCmd(ExprLocation loc, TokenReader& reader)
 	{
 		reader.expectLabel();
 		if (reader.getNext() != TokenReader::sVarname || reader.getNext() != TokenReader::sLabel) {
@@ -1130,7 +1130,7 @@ namespace Tempe {
 		throw;
 	}
 
-PExprNode Compiler2::compileInclude(ExprLocation loc, TokenReader& reader) {
+PExprNode Compiler::compileInclude(ExprLocation loc, TokenReader& reader) {
 		PExprNode expr = compileAssign(reader);
 
 		LocalScope scope(static_cast<IExprEnvironment &>(constContext));
@@ -1145,11 +1145,11 @@ PExprNode Compiler2::compileInclude(ExprLocation loc, TokenReader& reader) {
 		}
 }
 
-EscapeMode Compiler2::getCtFromMime(ConstStrA contentType) {
+EscapeMode Compiler::getCtFromMime(ConstStrA contentType) {
 	return strMimeCt[contentType];
 }
 
-std::pair<PExprNode,FilePath> Compiler2::loadCode(ExprLocation loc, ConstStrA name) {
+std::pair<PExprNode,FilePath> Compiler::loadCode(ExprLocation loc, ConstStrA name) {
 	throw ErrorMessageException(THISLOCATION, "No source repository is available");
 }
 

@@ -101,6 +101,7 @@ public:
 protected:
 
 	IExprEnvironment &parent;
+	IExprEnvironment &global;
 	JSON::PFactory factory;
 	JSON::PNode table;
 	natural cycleTm;

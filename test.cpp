@@ -14,6 +14,7 @@
 #include <lightspeed/utils/json/jsonfast.tcc>
 
 #include "src/tempe/compiler.h"
+#include "src/tempe/fileCompiler.h"
 namespace TempeTest {
 
 using namespace Tempe;
@@ -50,7 +51,7 @@ integer Main::start(const Args& args) {
 	//because global environment should be read only, we will create fake global scope 
 	FakeGlobalScope global(env);
 
-	Compiler2 comp(StdAlloc::getInstance());
+	FileCompiler comp(StdAlloc::getInstance());
 	//console.scan.setWS(ConstStrA(" \t\n\r\a\b"));
 	while (src.hasItems()) {
 

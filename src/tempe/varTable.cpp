@@ -106,7 +106,7 @@ void VarTable::clearStatic() {
 
 
 LocalScope::LocalScope(IExprEnvironment& parent)
-	:parent(parent), factory(&parent.getFactory()), table(factory->newClass()), cycleTm(naturalNull)
+	:parent(parent), global(parent.getInternalGlobalEnv()),factory(&parent.getFactory()), table(factory->newClass()), cycleTm(naturalNull)
  {
 }
 
@@ -148,11 +148,11 @@ const IExprEnvironment& VarTable::getGlobalEnv() const {
 
 
 IExprEnvironment& LocalScope::getGlobalEnv() {
-	return parent.getGlobalEnv();
+	return global;
 }
 
 const IExprEnvironment& LocalScope::getGlobalEnv() const {
-	return parent.getGlobalEnv();
+	return global;
 }
 
 void LocalScope::setCycleTimeout(natural tmInMs)
@@ -181,7 +181,7 @@ LightSpeed::natural LocalScope::getCycleTimeout() const
 }
 
 LocalScope::LocalScope(IExprEnvironment& parent, JSON::PNode import)
-:parent(parent),factory(&parent.getFactory()),table(import)
+:parent(parent),global(parent.getInternalGlobalEnv()),factory(&parent.getFactory()),table(import)
 {
 }
 
@@ -284,7 +284,7 @@ void VarTable::setCycleTimeout(natural tmInMs) {
 }
 
 const IExprEnvironment& LocalScope::getInternalGlobalEnv() const {
-	return parent.getInternalGlobalEnv();
+	return global;
 }
 
 

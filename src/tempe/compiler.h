@@ -130,10 +130,10 @@ namespace Tempe {
 	};
 
 
-	class Compiler2 {
+	class Compiler {
 	public:
 
-		Compiler2(IRuntimeAlloc &alloc);
+		Compiler(IRuntimeAlloc &alloc);
 
 		virtual PExprNode compile(TokenReader &reader);
 		virtual PExprNode compileInteractive(TokenReader &reader);

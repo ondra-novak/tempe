@@ -12,7 +12,7 @@ namespace Tempe {
 		}
 		StringA code = values[0]->getStringUtf8();
 		IRuntimeAlloc *alloc = env.getFactory().getAllocator();
-		Compiler2 compiler(*alloc);
+		Compiler compiler(*alloc);
 		MemFileStr strfile(code);
 		strfile.setStaticObj();
 		TokenReader rd(*alloc, SeqFileInput(&strfile), FilePath(L"<eval>"));
