@@ -32,6 +32,7 @@ namespace Tempe {
 		{ TokenReader::kwTry, "try" },
 		{ TokenReader::kwCatch, "catch" },
 		{ TokenReader::kwWith, "with" },
+		{ TokenReader::kwSet, "set" },
 		{ TokenReader::kwScope, "scope" },
 		{ TokenReader::kwObject, "object" },
 		{ TokenReader::kwWhile, "while" },
@@ -62,6 +63,7 @@ namespace Tempe {
 		{ TokenReader::symbSemicolon, ";" },
 		{ TokenReader::symbAsssign, ":=" },
 		{ TokenReader::symbEqual, "=" },
+		{ TokenReader::symbEqual, "==" },
 		{ TokenReader::symbNotEqual, "!=" },
 		{ TokenReader::symbNotEqual, "<>" },
 		{ TokenReader::symbAbove, ">" },
@@ -581,6 +583,9 @@ namespace Tempe {
 				reader.accept();
 				return (new(alloc)Oper_Throw(loc))
 					->setBranch(0, compileUNARSuffix(reader));
+			case TokenReader::kwSet:
+				reader.accept();
+				return compileSetCommand(loc, reader);
 			case TokenReader::kwForeach:
 				reader.accept();
 				return compileForEach(loc, reader);
@@ -1151,6 +1156,26 @@ EscapeMode Compiler::getCtFromMime(ConstStrA contentType) {
 
 std::pair<PExprNode,FilePath> Compiler::loadCode(ExprLocation loc, ConstStrA name) {
 	throw ErrorMessageException(THISLOCATION, "No source repository is available");
+}
+
+Tempe::PExprNode Compiler::compileSetCommand(ExprLocation loc, TokenReader& reader)
+{
+	PExprNode var = compileUNARSuffix(reader);
+	TokenReader::Symbol s = reader.getNext();
+	bool onecycle = false;
+	if (s == TokenReader::symbEqual || s == TokenReader::symbAsssign) {
+		reader.accept();
+		loc = reader.getLocation();
+		PExprNode expr = compileOR(reader);
+		PExprNode o = (new(alloc)Oper_Assign(loc))
+			->setBranch(0, var)
+			->setBranch(1, expr);
+		var = o;
+		s = reader.getNext();
+		onecycle = true;
+	}
+	if (!onecycle) throwExpectedError(loc, TokenReader::symbEqual);
+	return var;
 }
 
 }

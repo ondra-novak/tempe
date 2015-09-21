@@ -3,6 +3,7 @@
 #include "lightspeed/base/containers/convertString.h"
 #include "lightspeed/utils/base64.tcc"
 #include "../../../lightspeed/src/lightspeed/utils/urlencode.h"
+#include "basicOps.h"
 
 namespace Tempe {
 
@@ -79,6 +80,7 @@ namespace Tempe {
 		IVtWriteIterator<char> *out = env.getTempeOutput();
 		if (out) {
 			Value v = subResults[0];
+			v = convertLink(v);
 			if (!v->isNull()) {
 
 				if (escMode == emJSON) {

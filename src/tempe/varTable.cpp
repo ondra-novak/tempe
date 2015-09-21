@@ -35,8 +35,6 @@ public:
 
 protected:
 	SharedPtr<JSON::INode> weakPtr;
-
-
 };
 
 class Factory_t: public JSON::FactoryAlloc_t<ScopeObject> {

@@ -173,6 +173,7 @@ namespace Tempe {
 		static EscapeMode getCtFromMime(ConstStrA contentType);
 
 		virtual std::pair<PExprNode,FilePath> loadCode(ExprLocation loc, ConstStrA name);
+		PExprNode compileSetCommand(ExprLocation loc, TokenReader& reader);
 	public:
 		IRuntimeAlloc &alloc;
 		JSON::PFactory valueFactory;
