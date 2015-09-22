@@ -37,17 +37,33 @@ protected:
 	SharedPtr<JSON::INode> weakPtr;
 };
 
-class Factory_t: public JSON::FactoryAlloc_t<ScopeObject> {
+class VarTable::Factory_t: public JSON::FactoryAlloc_t<ScopeObject> {
 public:
 
 	ClusterAlloc alloc;
+	VarTable &owner;
 
-	Factory_t():FactoryAlloc_t<ScopeObject>(alloc) {}
-	virtual IFactory *clone() {return new Factory_t;}
+	Factory_t(VarTable &owner):FactoryAlloc_t<ScopeObject>(alloc),owner(owner) {}
+	virtual IFactory *clone() {return new Factory_t(owner);}
+
+	virtual JSON::PNode newClass() {
+		return owner.regToGc(new(alloc) ScopeObject<Object>);
+	}
+	virtual JSON::PNode newArray() {
+		return owner.regToGc(new(alloc) ScopeObject<Array>);
+	}
+
+
 };
 
+JSON::PNode VarTable::regToGc(const JSON::PNode &obj) {
+	GCReg &r = obj->getIfc<GCReg>();
+	r.registerToGC(gcreg);
+	return obj;
+}
 
-VarTable::VarTable():factory(new Factory_t)
+
+VarTable::VarTable():factory(new Factory_t(*this))
 			,table(factory->newClass())
 			,staticTable(factory->newClass())
 			,cycleTm(5000) {
@@ -94,6 +110,16 @@ void VarTable::clear() {
 	table.clear();
 	table = factory->newClass();
 	AbstractEnv::clear();
+	GCReg *x = gcreg.next;
+	AutoArray<std::pair<Value, GCReg *>, SmallAlloc<256> > regs;
+	while (x) {
+		regs.add(std::make_pair(Value(dynamic_cast<JSON::INode *>(x)),x));
+		x = x->next;
+	}
+	for (natural i = 0; i < regs.length(); i++) {
+		regs[i].second->clear();
+	}
+
 }
 
 void VarTable::clearStatic() {
@@ -102,6 +128,9 @@ void VarTable::clearStatic() {
 }
 
 
+VarTable::~VarTable() {
+	clear();
+}
 
 LocalScope::LocalScope(IExprEnvironment& parent)
 	:parent(parent), global(parent.getInternalGlobalEnv()),factory(&parent.getFactory()), table(factory->newClass()), cycleTm(naturalNull)

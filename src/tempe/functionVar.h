@@ -25,7 +25,7 @@ namespace Tempe {
 
 using namespace LightSpeed;
 
-class AbstractFunctionVar: public JSON::LeafNode_t, public DynObject, public JSON::ICustomNode {
+class IExecutableVar {
 public:
 	enum VarType {
 		byValue,
@@ -38,6 +38,10 @@ public:
 
 	virtual ConstStringT<VarName_OutMode> getArguments() const = 0;
 	virtual Value execute(IExprEnvironment &env, ArrayRef<Value> values, Value context) = 0;
+};
+
+class AbstractFunctionVar: public JSON::LeafNode_t, public DynObject, public JSON::ICustomNode, public IExecutableVar {
+public:
 
 	virtual JSON::NodeType getType() const;
 	virtual ConstStrW getString() const ;
@@ -85,6 +89,45 @@ public:
 protected:
 	AutoArray<VarName_OutMode> arguments;
 	PExprNode code;
+};
+
+class BoundVar: public AbstractFunctionVar {
+public:
+	BoundVar(Value context, VarName varname);
+	void setValue(Value newValue);
+	virtual ConstStringT<VarName_OutMode> getArguments() const ;
+	virtual Value execute(IExprEnvironment &env, ArrayRef<Value> values, Value context) ;
+
+	virtual JSON::NodeType getType() const;
+	virtual ConstStrW getString() const ;
+	virtual integer getInt() const ;
+	virtual double getFloat() const ;
+	virtual bool getBool() const ;
+	virtual bool isNull() const ;
+	virtual bool operator==(const INode &other) const ;
+	virtual bool operator!=(const INode &other) const ;
+	virtual ConstStrA getStringUtf8() const;
+	virtual linteger getLongInt() const ;
+	virtual lnatural getLongUInt() const;
+	virtual bool empty() const {return true;}
+	virtual void serialize(IVtWriteIterator<char> &output, bool escapeUTF8) const;
+	virtual JSON::INode *clone(JSON::PFactory factory) const;
+	Value resolve() const;
+public:
+	Value context;
+	VarName varname;
+};
+
+class ClassVar: public JSON::Object_t, public DynObject, public IExecutableVar {
+public:
+	ClassVar(const JSON::Object_t &objLayout);
+
+	virtual ConstStringT<VarName_OutMode> getArguments() const;
+	virtual Value execute(IExprEnvironment &env, ArrayRef<Value> values, Value context);
+	virtual JSON::INode *clone(JSON::PFactory factory) const;
+
+protected:
+	IExecutableVar *getConstructor() const;
 };
 
 } /* namespace AAA */

@@ -10,6 +10,8 @@
 #include "lightspeed/base/memory/smallAlloc.h"
 #include "functionVar.h"
 
+#include <lightspeed/utils/json/jsonfast.tcc>
+#include "exceptions.h"
 #include "varTable.h"
 
 namespace Tempe {
@@ -154,4 +156,138 @@ void AbstractFunctionVar::serialize(IVtWriteIterator<char>& output, bool escapeU
 	output.blockWrite(name);
 }
 
+
+
+BoundVar::BoundVar(Value context, VarName varname):context(context),varname(varname) {
+}
+
+ConstStringT<AbstractFunctionVar::VarName_OutMode> BoundVar::getArguments() const {
+	Value v = resolve();
+	AbstractFunctionVar *x = v->getIfcPtr<AbstractFunctionVar>();
+	if (x) return x->getArguments();
+	else throw OperationIsUndefined(THISLOCATION);
+}
+
+Value BoundVar::execute(IExprEnvironment& env, ArrayRef<Value> values, Value context) {
+	Value v = resolve();
+	AbstractFunctionVar *x = v->getIfcPtr<AbstractFunctionVar>();
+	if (x) return x->execute(env,values,this->context);
+	else throw OperationIsUndefined(THISLOCATION);
+}
+
+JSON::NodeType BoundVar::getType() const {
+	return resolve()->getType();
+}
+
+ConstStrW BoundVar::getString() const {
+	return resolve()->getString();
+}
+
+integer BoundVar::getInt() const {
+	return resolve()->getInt();
+}
+
+double BoundVar::getFloat() const {
+	return resolve()->getFloat();
+}
+
+bool BoundVar::getBool() const {
+	return resolve()->getBool();
+}
+
+bool BoundVar::isNull() const {
+	return resolve()->isNull();
+}
+
+bool BoundVar::operator ==(const INode& other) const {
+	return resolve()->operator ==(other);
+}
+
+bool BoundVar::operator !=(const INode& other) const {
+	return resolve()->operator !=(other);
+}
+
+ConstStrA BoundVar::getStringUtf8() const {
+	return resolve()->getStringUtf8();
+}
+
+linteger BoundVar::getLongInt() const {
+	return resolve()->getLongInt();
+}
+
+lnatural BoundVar::getLongUInt() const {
+	return resolve()->getLongUInt();
+}
+
+void BoundVar::setValue(Value newValue) {
+	context->replace(varname,newValue);
+}
+
+void BoundVar::serialize(IVtWriteIterator<char>& output,
+		bool escapeUTF8) const {
+	Value v = resolve();
+	ICustomNode *cv = v->getIfcPtr<ICustomNode>();
+	if (cv) cv->serialize(output,escapeUTF8);
+	else {
+		JSON::serialize(v,output,escapeUTF8);
+	}
+
+}
+
+JSON::INode* BoundVar::clone(JSON::PFactory factory) const {
+	return new (*factory->getAllocator()) BoundVar(*this);
+
+}
+
+Value BoundVar::resolve() const {
+	JSON::INode *v = context->getVariable(varname);
+	if (v == 0) throw VariableNotExistException(THISLOCATION,varname);
+	else return v;
+}
+
+static JSON::PNode cloneSuper(IExprEnvironment &e, JSON::PNode src) {
+	JSON::PNode obj = e.getFactory().object();
+
+	for (JSON::Iterator iter = src->getFwIter(); iter.hasItems();) {
+		const JSON::KeyValue &kv = iter.getNext();
+		if (kv.getStringKey() == ConstStrA("super")) {
+			obj->add("super", cloneSuper(e,kv.node));
+		} else {
+			obj->add(kv.getStringKey(),kv.node);
+		}
+	}
+
+}
+
+ClassVar::ClassVar(const JSON::Object_t &objLayout)
+	:Object_t(objLayout)
+{
+}
+
+ConstStringT<IExecutableVar::VarName_OutMode> ClassVar::getArguments() const {
+	IExecutableVar *v = getConstructor();
+	if (v == 0) return ConstStringT<IExecutableVar::VarName_OutMode>();
+	else return v->getArguments();
+}
+
+Value ClassVar::execute(IExprEnvironment& env, ArrayRef<Value> values,
+		Value context) {
+
+	for (JSON::Iterator iter = getFwIter(); iter.hasItems();) {
+		const JSON::KeyValue &kv = iter.getNext();
+		if (kv.getStringKey() == ConstStrA("super")) {
+			context->add("super", cloneSuper(env,kv.node));
+		} else {
+			context->add(kv.getStringKey(),kv.node);
+		}
+	}
+
+
+}
+
+JSON::INode* ClassVar::clone(JSON::PFactory factory) const {
+}
+
+IExecutableVar* ClassVar::getConstructor() const {
+}
 }

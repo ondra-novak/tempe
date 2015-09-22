@@ -514,6 +514,16 @@ namespace Tempe {
 
 	}
 
+PExprNode Compiler::compileNEW(ExprLocation loc,
+		TokenReader& reader) {
+	PExprNode nd = compileUNARSuffix(reader);
+	Oper_FunctionCall *fncall = nd->getIfcPtr<Oper_FunctionCall>();
+	if (fncall==0) {
+		throwExpectedError(reader.getLocation(),TokenReader::symbOBracket);
+	}
+	return new (alloc) Oper_New(*fncall);
+	}
+
 	PExprNode Compiler::compileUNAR(TokenReader& reader)
 	{
 		ExprLocation loc = reader.getLocation();
@@ -542,8 +552,7 @@ namespace Tempe {
 					->setBranch(0, compileUNARSuffix(reader));
 			case TokenReader::kwNew:
 				reader.accept();
-				return (new(alloc)Oper_New(loc))
-					->setBranch(0, compileUNARSuffix(reader));
+				return compileNEW(loc, reader);
 			case TokenReader::kwIsNull:
 				reader.accept();
 				return (new(alloc)Oper_IsNull(loc))
@@ -602,6 +611,10 @@ namespace Tempe {
 			case TokenReader::symbPlus:
 				reader.accept();
 				return  compileUNARSuffix(reader);
+			case TokenReader::symbAmp:
+				reader.accept();
+				return (new(alloc)Oper_ReferenceOper(loc))
+						->setBranch(0,compileUNARSuffix(reader));
 			case TokenReader::symbOBracket: 
 				reader.accept();
 				return compileSubExpr(loc, reader);

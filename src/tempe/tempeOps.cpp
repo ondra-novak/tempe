@@ -48,8 +48,10 @@ namespace Tempe {
 	static StringA escapeJs(StringA v) {
 		AutoArray<char, SmallAlloc<256> > buffer;
 		AutoArray<char, SmallAlloc<256> >::WriteIter iter = buffer.getWriteIterator();
-		VtWriteIterator<AutoArray<char, SmallAlloc<256> >::WriteIter &> wrt(iter);
-		JSON::serializeString(v, wrt);
+		typedef VtWriteIterator<AutoArray<char, SmallAlloc<256> >::WriteIter &> Wrt;
+		Wrt wrt(iter);
+		JSON::Serializer<IVtWriteIterator<char> > s(wrt,false);
+		s.serializeString(ConstStrA(v));
 		return buffer.crop(1, 1);
 	}
 
@@ -96,7 +98,10 @@ namespace Tempe {
 					case emXml:strout = escapeXml(val, false); break;
 					case emHtml:  strout = escapeXml(val,true); break;
 					case emJS: strout = escapeJs(val); break;
+					case emC: strout = escapeC(val); break;
 					case emURI: strout = escapeURI(val); break;
+					case emBase64: strout = escapeBase64(val); break;
+					case emHex: strout = escapeHex(val); break;
 					default: break;
 					}
 

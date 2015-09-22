@@ -520,18 +520,13 @@ Value Oper_FunctionCall::calculate(IExprEnvironment& env) const {
 		} else {
 			fn = name->calculate(env);
 		}
-		AbstractFunctionVar *fnvar = dynamic_cast<AbstractFunctionVar *>(fn.get());
-		while (fnvar == 0) {
-			if (fn->isObject()) {
-				context = fn;
-				fn = fn->getPtr("!");
-				if (fn!= nil) {
-					fnvar = dynamic_cast<AbstractFunctionVar *>(fn.get());
-					continue;
-				}
-			}
-			throw OperationIsUndefined(THISLOCATION);
+		IExecutableVar *fnvar = dynamic_cast<AbstractFunctionVar *>(fn.get());
+		Value fncontext;
+		if (fnvar == 0) {
+			fncontext = fn;
+			fnvar = findExecutable(fn);
 		}
+		if (fnvar == 0) throw OperationIsUndefined(THISLOCATION);
 
 		ConstStringT<FunctionVar::VarName_OutMode> varlist = fnvar->getArguments();
 		natural cnt =varlist.length();
@@ -588,8 +583,13 @@ Value Oper_FunctionCall::calculate(IExprEnvironment& env) const {
 			calcVals.add(nodes[i]->calculate(env));
 		}
 
-
-		Value res = fnvar->execute(env,calcVals,context);
+		Value res;
+		if (fncontext != nil) {
+			LocalScope s(env,context);
+			res = executeFn(fnvar, env, calcVals, fncontext, true);
+		} else {
+			res = executeFn(fnvar, env, calcVals, context, false);
+		}
 
 		if (anybyref) {
 			for (natural i = 0; i < cnt; i++) {
@@ -612,6 +612,25 @@ Value Oper_FunctionCall::calculate(IExprEnvironment& env) const {
 	}
 }
 
+IExecutableVar* Oper_FunctionCall::findExecutable(Value obj) const {
+	IExecutableVar *fnvar = 0;
+	while (fnvar == 0) {
+		if (obj->isObject()) {
+			obj = obj->getPtr("()");
+			if (obj!= nil) {
+				fnvar = dynamic_cast<IExecutableVar *>(obj.get());
+				continue;
+			}
+		}
+		break;
+	}
+	return fnvar;
+}
+
+
+Value Oper_FunctionCall::executeFn(IExecutableVar *fnvar, IExprEnvironment &env, ArrayRef<Value> args, Value context, bool functor) const {
+	return fnvar->execute(env,args,context);
+}
 
 
 Value Oper_FirstDefined::calculate(IExprEnvironment& env) const {
@@ -795,6 +814,9 @@ Value Oper_Comma::calculate(IExprEnvironment& env) const {
 	throw;
 }
 
+const VarName& Oper_MemberAccess::getName(IExprEnvironment& env) const {
+	return branch[1]->getIfc<LocalVarRef>().getName(env);
+}
 
 IGetVarName::ValueWithContext Oper_MemberAccess::getValueWithContext(IExprEnvironment& env) const {
 	Value v = branch[0]->calculate(env);
@@ -807,15 +829,81 @@ IGetVarName::ValueWithContext Oper_MemberAccess::getValueWithContext(IExprEnviro
 	}
 }
 
-Value Oper_New::calculate(IExprEnvironment& env) const {
-	LocalScope scope(env);
-	JSON::PNode object = scope.getObject();
-	LocalScope scope2(static_cast<IExprEnvironment &>(scope));
-	scope2.setVar("this",object);
-	branch[0]->calculate(scope2);
-	return scope2.getVar("this");
 
+class ExpandSuperClassFn:public AbstractFunctionVar {
+public:
+	ExpandSuperClassFn(Value classToClone):classToClone(classToClone) {
+		Value initFn = classToClone->getPtr("init");
+		if (initFn != nil) {
+			this->initFn = initFn->getIfcPtr<IExecutableVar>();
+		}
+	}
+
+protected:
+
+	virtual Value execute(IExprEnvironment &env, ArrayRef<Value> values, Value context) {
+		context = env.getVar("this");
+		LocalScope local(env);
+		cloneClass(local,classToClone,context);
+		if (initFn) return initFn->execute(local,values,nil);
+		return nil;
+	}
+
+	virtual ConstStringT<VarName_OutMode> getArguments() const {
+		if (initFn) return initFn->getArguments();
+		else return ConstStringT<VarName_OutMode>();
+	}
+	virtual INode *clone(JSON::PFactory factory) const {
+		return new(*factory->getAllocator()) ExpandSuperClassFn(*this);
+	}
+
+	IExecutableVar *initFn;
+	Value classToClone;
+public:
+	static void cloneClass(IExprEnvironment& env, Value context, Value where) {
+		Value super;
+		for (JSON::Iterator iter = context->getFwIter(); iter.hasItems();) {
+			const JSON::KeyValue &kv = iter.getNext();
+			if (kv.getStringKey() == "init") continue;
+			if (kv.getStringKey() == "super") {
+				super = kv.node;
+				continue;
+			}
+			where->add(kv.getStringKey(),kv.node->clone(&env.getFactory()));
+		}
+		if (super != nil) {
+			env.setVar("super", new (*env.getFactory().getAllocator()) ExpandSuperClassFn(super));
+		}
+	}
+
+};
+
+
+Value Oper_New::executeFn(IExecutableVar* fnvar, IExprEnvironment& env,
+		ArrayRef<Value> args, Value context, bool functor) const {
+	Value obj = env.getFactory().object();
+	if (functor) {
+		ExpandSuperClassFn::cloneClass(env,context,obj);
+		obj->add("class", context);
+	}
+
+	Oper_FunctionCall::executeFn(fnvar,env,args,obj,functor);
+	return obj;
 }
+
+IExecutableVar* Oper_New::findExecutable(Value obj) const {
+	JSON::INode *nd = obj->getPtr("init");
+	IExecutableVar *fn = 0;
+	if (nd != 0) {
+		fn =nd->getIfcPtr<IExecutableVar>();
+		if  (fn == 0) {
+			if (obj->isObject())
+				fn = Oper_FunctionCall::findExecutable(nd);
+		}
+	}
+	return fn;
+}
+
 
 Value Oper_Link::calculate(IExprEnvironment& env,const Value* subResults) const {
 	if (subResults[0]->isNull()) return env.getFactory().newNullNode();
@@ -883,6 +971,20 @@ Value Oper_IncludeTrace::calculate(IExprEnvironment& env) const {
 		env.markIncludeProcessed(path);
 		return expr->calculate(env);
 	}
+}
+
+Value Oper_ReferenceOper::calculate(IExprEnvironment& env) const {
+	try {
+		LocalVarRef &varNameBranch = branch[0]->getIfc<LocalVarRef>();
+		IGetVarName::ValueWithContext val = varNameBranch.getValueWithContext(env);
+		VarName name = varNameBranch.getName(env);
+		return BoundVar(val.context,name).clone(&env.getFactory());
+	} catch (LightSpeed::Exception &e) {
+		throwScriptException(THISLOCATION,loc,e);throw;
+	} catch (const std::exception &e) {
+		throwScriptException(THISLOCATION,loc,e);throw;
+	}
+	throw;
 }
 
 

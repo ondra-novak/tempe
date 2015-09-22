@@ -169,6 +169,7 @@ namespace Tempe {
 		virtual PExprNode compileConst(ExprLocation loc, TokenReader& reader);
 		virtual PExprNode compileTemplateCmd(ExprLocation loc, TokenReader& reader);
 		virtual PExprNode compileInclude(ExprLocation loc, TokenReader &reader);
+		virtual PExprNode compileNEW(ExprLocation loc, TokenReader& reader);
 
 		static EscapeMode getCtFromMime(ConstStrA contentType);
 
@@ -182,7 +183,9 @@ namespace Tempe {
 
 		VarTable globalConstContext;
 		FakeGlobalScope constContext;
-	};
+
+private:
+};
 
 	extern NamedEnum<EscapeMode> strEscapeMode;
 }

@@ -11,6 +11,7 @@
 #include "lightspeed/base/containers/set.h"
 #include "lightspeed/base/memory/rtAlloc.h"
 #include "interfaces.h"
+#include "objects.h"
 
 namespace Tempe {
 
@@ -47,6 +48,7 @@ public:
 	virtual const IExprEnvironment &getInternalGlobalEnv() const;
 
 	VarTable();
+	~VarTable();
 
 	void setStaticVar(VarNameRef name, const Value val);
 	void clear();
@@ -65,11 +67,17 @@ protected:
 	void initFunctions();
 
 
+	class Factory_t;
 
 	JSON::PFactory factory;
 	JSON::PNode table;
 	JSON::PNode staticTable;
 	natural cycleTm;
+
+	class GCRegRoot: public GCReg {void clear() {};};
+	GCRegRoot gcreg;
+
+	JSON::PNode regToGc(const JSON::PNode &obj);
 
 };
 

@@ -63,7 +63,20 @@ Value convertAndDoOper(IExprEnvironment &env, const Value &a, const Value &b, Va
 
 
 Value operEqual(IExprEnvironment& env,const Value &a,const Value &b) {
-	return env.getFactory().newValue(a->operator==(*b));
+	if (a.get() == b.get()) return env.getFactory().newValue(true);
+	if (a->getType() == JSON::ndArray || a->getType() == JSON::ndObject
+			|| b->getType() == JSON::ndArray || b->getType() == JSON::ndObject)
+		return env.getFactory().newValue(false);
+	if (a->getType() != b->getType())
+		return convertAndDoOper(env,a,b,&operGreatEqual);
+	switch (a->getType()) {
+		case JSON::ndString: return env.getFactory().newValue(a->getStringUtf8() == b->getStringUtf8());
+		case JSON::ndInt: return env.getFactory().newValue(a->getInt() == b->getInt());
+		case JSON::ndFloat: return env.getFactory().newValue(a->getFloat() == b->getFloat());
+		case JSON::ndBool: return env.getFactory().newValue(a->getBool() == b->getBool());
+		case JSON::ndNull: return a;
+		default: throw OperationIsUndefined(THISLOCATION);
+	}
 }
 
 Value operGreater(IExprEnvironment& env,const Value &a,const Value &b) {
@@ -101,7 +114,7 @@ Value operLessEqual(IExprEnvironment& env,const Value &a,const Value &b) {
 }
 
 Value operNotEqual(IExprEnvironment& env,const Value &a,const Value &b) {
-	return env.getFactory().newValue(a->operator!=(*b));
+	return operUnarNot(env,operEqual(env,a,b));
 }
 
 Value operPlus(IExprEnvironment& env, const Value& a, const Value& b) {

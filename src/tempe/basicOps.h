@@ -128,7 +128,7 @@ namespace Tempe {
 
 
 
-	class Oper_MemberAccess: public NaryNode<2>, public IGetVarName {
+	class Oper_MemberAccess: public NaryNode<2>, public LocalVarRef {
 	public:
 		Oper_MemberAccess(const ExprLocation &loc,PExprNode left, PExprNode right):NaryNode<2>(loc) {
 			setBranch(0,left);
@@ -139,6 +139,7 @@ namespace Tempe {
 		virtual void setValue(IExprEnvironment &env, const Value &val);
 		virtual bool isDefined(IExprEnvironment &env) const;
 		virtual void unset(IExprEnvironment &env);
+		virtual const VarName &getName(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
 		virtual ValueWithContext getValueWithContext(IExprEnvironment &env) const;
 
@@ -314,12 +315,15 @@ namespace Tempe {
 
 
 	class FunctionVar;
+	class IExecutableVar;
 
 	class Oper_FunctionCall: public VariadicNode {
 	public:
 		Oper_FunctionCall(const ExprLocation &loc, PExprNode name):VariadicNode(loc),name(name) {}
 		virtual Value calculate(IExprEnvironment &env) const;
 	protected:
+		virtual Value executeFn(IExecutableVar *fnvar, IExprEnvironment &env, ArrayRef<Value> args, Value context, bool functor) const;
+		virtual IExecutableVar *findExecutable(Value obj) const;
 		PExprNode name;
 
 
@@ -332,11 +336,11 @@ namespace Tempe {
 		Value calculate(IExprEnvironment &env, natural at) const;
 	};
 
-	class Oper_New: public NaryNode<1> {
+	class Oper_New: public Oper_FunctionCall {
 	public:
-		Oper_New(const ExprLocation &loc):NaryNode<1>(loc) {}
-		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		Oper_New(const Oper_FunctionCall &other):Oper_FunctionCall(other) {}
+		virtual Value executeFn(IExecutableVar *fnvar, IExprEnvironment &env, ArrayRef<Value> args, Value context, bool functor) const;
+		virtual IExecutableVar *findExecutable(Value obj) const;
 
 	};
 
@@ -362,6 +366,15 @@ namespace Tempe {
 	protected:
 		 FilePath path;
 		 PExprNode expr;
+	};
+
+	class Oper_ReferenceOper: public NaryNode<1> {
+	public:
+		Oper_ReferenceOper(const ExprLocation &loc):NaryNode<1>(loc) {}
+		virtual Value calculate(IExprEnvironment &env) const;
+		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const { throw; }
+
+
 	};
 }
 
