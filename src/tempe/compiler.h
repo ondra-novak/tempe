@@ -92,6 +92,8 @@ namespace Tempe {
 			kwForeach,
 			kwConst,
 			kwEcho,
+			kwRepeat,
+			kwUntil,
 
 			eof,
 			begin
@@ -160,6 +162,7 @@ namespace Tempe {
 		virtual PExprNode compileOpScope(ExprLocation loc, TokenReader& reader);
 		virtual PExprNode compileOpObject(ExprLocation loc, TokenReader& reader);
 		virtual PExprNode compileOpWhile(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileOpRepeatUntil(ExprLocation loc, TokenReader& reader);
 		virtual PExprNode compileOpFunction(ExprLocation loc, TokenReader& reader);
 		virtual void throwExpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols);
 		virtual void throwUnexpectedError(const ExprLocation &loc, ConstStringT<TokenReader::Symbol> symbols);

@@ -219,6 +219,8 @@ namespace Tempe {
 		virtual AbstrNaryNode *setBranch(natural b, PExprNode nd);
 		virtual natural getN() const {return naturalNull;}
 		void setBranches(class ConstStringT<PExprNode> branches);
+		const PExprNode &getBranch(natural b) const {return nodes[b];}
+
 
 	protected:
 		AutoArray<PExprNode> nodes;

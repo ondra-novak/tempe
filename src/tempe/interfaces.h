@@ -102,6 +102,7 @@ namespace Tempe {
 		AbstrNaryNode(const ExprLocation &loc):AbstractNode(loc) {}
 		virtual AbstrNaryNode *setBranch(natural b, PExprNode nd) = 0;
 		virtual natural getN() const = 0;
+		virtual const PExprNode &getBranch(natural b) const = 0;
 	};
 
 	template<natural n>
@@ -110,7 +111,7 @@ namespace Tempe {
 
 		NaryNode(const ExprLocation &loc):AbstrNaryNode(loc) {}
 		NaryNode<n> *setBranch(natural b, PExprNode nd) {branch[b % n] = nd;return this;}
-		PExprNode getBranch(natural b) {return branch[b % n];}
+		const PExprNode &getBranch(natural b) const {return branch[b % n];}
 
 		virtual Value calculate(IExprEnvironment &env) const  {
 			try{

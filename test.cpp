@@ -14,6 +14,7 @@
 #include <lightspeed/utils/json/jsonfast.tcc>
 
 #include "src/tempe/compiler.h"
+#include "src/tempe/dumpCode.h"
 #include "src/tempe/fileCompiler.h"
 namespace TempeTest {
 
@@ -40,6 +41,27 @@ protected:
 
 
 };
+
+void dumpCode(PrintTextA &output, const IExprNode *nd) {
+	class Dumper: public AbstractDumpCode {
+	public:
+		Dumper(PrintTextA &output):output(output) {}
+		virtual void dumpInstruction(const ExprLocation &loc, ConstStrA opcode, Value arg, const IExprNode *addr){
+			output("%6\t%4\t%5\t%1:%2:%3\n")
+					<< ConstStrW(loc.getFileName())
+					<< loc.getPosition()
+					<< ConstStrA("")
+					<< opcode
+					<< ((arg==nil)?ConstStrA(""):ConstStrA(JSON::toString(arg,false)))
+					<< ((natural)addr);
+		}
+		PrintTextA &output;
+
+	};
+
+	Dumper dmp(output);
+	dmp.dump(nd);
+}
 
 integer Main::start(const Args& args) {
 
@@ -69,6 +91,7 @@ integer Main::start(const Args& args) {
 
 		env.clearOutput();
 		
+		dumpCode(console.print, nd);
 
 		try {
 			Value k = nd->calculate(global);

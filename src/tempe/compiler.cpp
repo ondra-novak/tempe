@@ -54,6 +54,8 @@ namespace Tempe {
 		{ TokenReader::kwForeach, "foreach" }, 
 		{ TokenReader::kwConst, "const" },  //< const <expr> - executes <expr> during compilation
 		{ TokenReader::kwEcho, "echo" },
+		{ TokenReader::kwRepeat, "repeat" },
+		{ TokenReader::kwUntil, "until" },
 		{ TokenReader::begin, "<begin>" },
 		{ TokenReader::eof, "<eof>" },
 		{ TokenReader::symbUnknown, "<unknown-symbol>" },
@@ -380,6 +382,7 @@ namespace Tempe {
 				|| s == TokenReader::kwElse
 				|| s == TokenReader::kwElseIf
 				|| s == TokenReader::kwCatch
+				|| s == TokenReader::kwUntil
 				|| s == TokenReader::eof ) {
 				return a;
 			}
@@ -603,6 +606,9 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 			case TokenReader::kwTemplate:
 				reader.accept();
 				return compileTemplateCmd(loc, reader);
+			case TokenReader::kwRepeat:
+				reader.accept();
+				return compileOpRepeatUntil(loc, reader);
 			case TokenReader::symbMinus:
 				reader.accept();
 				return (new(alloc)Oper_Fn1(loc,&operUnarMinus))
@@ -1180,6 +1186,24 @@ PExprNode Compiler::compileCondition(ExprLocation loc, TokenReader& reader) {
 		throwUnexpectedError(loc,TokenReader::symbAsssign);
 	}
 	return cond;
+}
+
+PExprNode Compiler::compileOpRepeatUntil(ExprLocation loc, TokenReader& reader) {
+	reader.enterLevel();
+	PExprNode body = compileExprSeq(reader);
+	reader.leaveLevel();
+	if (reader.getNext() != TokenReader::kwUntil) {
+		throwExpectedError(loc,TokenReader::kwUntil);
+	}
+	reader.accept();
+
+	PExprNode cond = compileCondition(reader.getLocation(), reader);
+	PExprNode ncond = (new (alloc) Oper_Fn1(reader.getLocation(),&operUnarNot))
+			->setBranch(0,cond);
+	PExprNode semicol = (new (alloc) Oper_Comma(reader.getLocation()))
+			->setBranch(0,body)->setBranch(1,ncond);
+	return (new (alloc) Oper_Cycle(loc))->setBranch(0,semicol);
+
 }
 
 Tempe::PExprNode Compiler::compileSetCommand(ExprLocation loc, TokenReader& reader)
