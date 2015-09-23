@@ -170,6 +170,7 @@ namespace Tempe {
 		virtual PExprNode compileTemplateCmd(ExprLocation loc, TokenReader& reader);
 		virtual PExprNode compileInclude(ExprLocation loc, TokenReader &reader);
 		virtual PExprNode compileNEW(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileCondition(ExprLocation loc, TokenReader &reader);
 
 		static EscapeMode getCtFromMime(ConstStrA contentType);
 

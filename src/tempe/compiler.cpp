@@ -61,8 +61,7 @@ namespace Tempe {
 		{ TokenReader::sVarname, "<identifier>" },
 		{ TokenReader::sLabel, "<label>" },
 		{ TokenReader::symbSemicolon, ";" },
-		{ TokenReader::symbAsssign, ":=" },
-		{ TokenReader::symbEqual, "=" },
+		{ TokenReader::symbAsssign, "=" },
 		{ TokenReader::symbEqual, "==" },
 		{ TokenReader::symbNotEqual, "!=" },
 		{ TokenReader::symbNotEqual, "<>" },
@@ -764,7 +763,7 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 	Tempe::PExprNode Compiler::compileIF(ExprLocation loc, TokenReader& reader)
 	{
 		reader.enterLevel();
-		PExprNode cond = compileAssign(reader);
+		PExprNode cond = compileCondition(loc, reader);
 		if (reader.getNext() == TokenReader::kwThen) {			
 			reader.accept();
 			PExprNode thenPart = compileExprSeq(reader);
@@ -911,7 +910,7 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 	Tempe::PExprNode Compiler::compileOpWhile(ExprLocation loc, TokenReader& reader)
 	{
 		reader.enterLevel();
-		PExprNode cond = compileAssign(reader);
+		PExprNode cond = compileCondition(loc, reader);
 		if (reader.getNext() == TokenReader::kwDo) {
 			reader.accept();
 			PExprNode body = compileExprSeq(reader);
@@ -1169,6 +1168,18 @@ EscapeMode Compiler::getCtFromMime(ConstStrA contentType) {
 
 std::pair<PExprNode,FilePath> Compiler::loadCode(ExprLocation loc, ConstStrA name) {
 	throw ErrorMessageException(THISLOCATION, "No source repository is available");
+}
+
+PExprNode Compiler::compileCondition(ExprLocation loc, TokenReader& reader) {
+	PExprNode cond = compileOR(reader);
+	if (reader.getNext() == TokenReader::symbAsssign) {
+		throwUnexpectedError(loc,reader.getNext());
+	}
+	Oper_Assign *assign = cond->getIfcPtr<Oper_Assign>();
+	if (assign != 0) {
+		throwUnexpectedError(loc,TokenReader::symbAsssign);
+	}
+	return cond;
 }
 
 Tempe::PExprNode Compiler::compileSetCommand(ExprLocation loc, TokenReader& reader)
