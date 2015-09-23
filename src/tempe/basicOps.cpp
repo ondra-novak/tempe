@@ -51,6 +51,11 @@ Value Constant::calculate(IExprEnvironment& env) const {
 }
 
 
+const Value & Constant::getValue() const
+{
+	return val;
+}
+
 VariableRef::VariableRef(const ExprLocation &loc, const VarName &name)
 	:AbstractNode(loc),name(name)
 {

@@ -20,6 +20,7 @@ namespace Tempe {
 		Constant(const ExprLocation &loc, Value val);
 		virtual bool tryToEvalConst(IExprEnvironment&, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env) const;
+		const Value &getValue() const;
 	protected:
 		Value val;
 	};
@@ -217,7 +218,7 @@ namespace Tempe {
 	public:
 		VariadicNode(const ExprLocation &loc):AbstrNaryNode(loc) {}
 		virtual AbstrNaryNode *setBranch(natural b, PExprNode nd);
-		virtual natural getN() const {return naturalNull;}
+		virtual natural getN() const {return nodes.length();}
 		void setBranches(class ConstStringT<PExprNode> branches);
 		const PExprNode &getBranch(natural b) const {return nodes[b];}
 

@@ -86,6 +86,8 @@ public:
 	virtual Value execute(IExprEnvironment &env, ArrayRef<Value> values, Value context);
 	virtual JSON::INode *clone(JSON::PFactory factory) const;
 
+	PExprNode getCode() const { return code; }
+
 protected:
 	AutoArray<VarName_OutMode> arguments;
 	PExprNode code;
@@ -118,17 +120,6 @@ public:
 	VarName varname;
 };
 
-class ClassVar: public JSON::Object_t, public DynObject, public IExecutableVar {
-public:
-	ClassVar(const JSON::Object_t &objLayout);
-
-	virtual ConstStringT<VarName_OutMode> getArguments() const;
-	virtual Value execute(IExprEnvironment &env, ArrayRef<Value> values, Value context);
-	virtual JSON::INode *clone(JSON::PFactory factory) const;
-
-protected:
-	IExecutableVar *getConstructor() const;
-};
 
 } /* namespace AAA */
 #endif /* AEXPRESS_FUNCTIONVAR_H_ */

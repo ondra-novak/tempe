@@ -47,13 +47,17 @@ void dumpCode(PrintTextA &output, const IExprNode *nd) {
 	public:
 		Dumper(PrintTextA &output):output(output) {}
 		virtual void dumpInstruction(const ExprLocation &loc, ConstStrA opcode, Value arg, const IExprNode *addr){
-			output("%6\t%4\t%5\t%1:%2:%3\n")
+			output("\t%6\t%4\t%5\t%1:%2:%3\n")
 					<< ConstStrW(loc.getFileName())
 					<< loc.getPosition()
 					<< ConstStrA("")
 					<< opcode
 					<< ((arg==nil)?ConstStrA(""):ConstStrA(JSON::toString(arg,false)))
 					<< ((natural)addr);
+			output.nxChain().flush();
+		}
+		virtual void dumpLabel(ConstStrA name) {
+			output("%1:\n") << name;
 		}
 		PrintTextA &output;
 

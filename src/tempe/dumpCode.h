@@ -13,12 +13,21 @@ namespace Tempe {
 
 class AbstractDumpCode {
 public:
+	AbstractDumpCode();
 	virtual ~AbstractDumpCode() {}
 
 	void dump(const IExprNode *nd);
 
 
 	virtual void dumpInstruction(const ExprLocation &loc, ConstStrA opcode, Value arg, const IExprNode *addr) = 0;
+	virtual void dumpLabel(ConstStrA name) = 0;
+
+	natural labelCounter;
+protected:
+	StringA genLabelName(natural id);
+	StringA genJumpName(natural id);
+	StringA genJumpOnFalseName(natural id);
+	natural allocLabel();
 };
 
 } /* namespace Tempe */

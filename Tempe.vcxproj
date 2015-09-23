@@ -143,6 +143,7 @@
   <ItemGroup>
     <ClCompile Include="src\tempe\basicOps.cpp" />
     <ClCompile Include="src\tempe\compiler.cpp" />
+    <ClCompile Include="src\tempe\dumpCode.cpp" />
     <ClCompile Include="src\tempe\eval.cpp" />
     <ClCompile Include="src\tempe\exceptions.cpp" />
     <ClCompile Include="src\tempe\fileCompiler.cpp" />
@@ -156,6 +157,7 @@
   <ItemGroup>
     <ClInclude Include="src\tempe\basicOps.h" />
     <ClInclude Include="src\tempe\compiler.h" />
+    <ClInclude Include="src\tempe\dumpCode.h" />
     <ClInclude Include="src\tempe\escapeMode.h" />
     <ClInclude Include="src\tempe\eval.h" />
     <ClInclude Include="src\tempe\exceptions.h" />
@@ -164,6 +166,7 @@
     <ClInclude Include="src\tempe\functionVar.h" />
     <ClInclude Include="src\tempe\interfaces.h" />
     <ClInclude Include="src\tempe\linkValue.h" />
+    <ClInclude Include="src\tempe\objects.h" />
     <ClInclude Include="src\tempe\sourceManager.h" />
     <ClInclude Include="src\tempe\SourceReader.h" />
     <ClInclude Include="src\tempe\tempeOps.h" />
