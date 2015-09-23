@@ -829,6 +829,29 @@ IGetVarName::ValueWithContext Oper_MemberAccess::getValueWithContext(IExprEnviro
 	}
 }
 
+class EmptyConstructor: public IExecutableVar {
+public:
+	virtual ConstStringT<VarName_OutMode> getArguments() const {
+		return ConstStringT<VarName_OutMode>();
+	}
+	virtual Value execute(IExprEnvironment &env, ArrayRef<Value> values, Value context) {
+		LocalScope scope(env);
+		if (context != null) scope.setVar("this",context);
+		if (env.varExists("super")) {
+			Value v = env.getVar("super");
+			if (!v->isNull()) {
+				IExecutableVar &e = v->getIfc<IExecutableVar>();
+				if (e.getArguments().empty() || e.getArguments()[0].second >= AbstractFunctionVar::optional)
+					e.execute(scope,ArrayRef<Value>(),null);
+				else
+					throw InvalidParamCountException(THISLOCATION,"init",0,e.getArguments().length());
+			}
+		}
+		return JSON::getNullNode();
+	}
+
+};
+
 
 class ExpandSuperClassFn:public AbstractFunctionVar {
 public:
@@ -836,6 +859,8 @@ public:
 		Value initFn = classToClone->getPtr("init");
 		if (initFn != nil) {
 			this->initFn = initFn->getIfcPtr<IExecutableVar>();
+		} else {
+			this->initFn = 0;
 		}
 	}
 
@@ -846,7 +871,10 @@ protected:
 		LocalScope local(env);
 		cloneClass(local,classToClone,context);
 		if (initFn) return initFn->execute(local,values,nil);
-		return nil;
+		else {
+			EmptyConstructor ec;
+			return ec.execute(local,ArrayRef<Value>(),nil);
+		}
 	}
 
 	virtual ConstStringT<VarName_OutMode> getArguments() const {
@@ -873,18 +901,25 @@ public:
 		}
 		if (super != nil) {
 			env.setVar("super", new (*env.getFactory().getAllocator()) ExpandSuperClassFn(super));
+		} else {
+			env.setVar("super", JSON::getNullNode());
 		}
 	}
 
 };
 
 
+static EmptyConstructor emptyConstructor;
+
+
 Value Oper_New::executeFn(IExecutableVar* fnvar, IExprEnvironment& env,
 		ArrayRef<Value> args, Value context, bool functor) const {
 	Value obj = env.getFactory().object();
 	if (functor) {
-		ExpandSuperClassFn::cloneClass(env,context,obj);
 		obj->add("class", context);
+		ExpandSuperClassFn::cloneClass(env,context,obj);
+	} else {
+		obj->add("class", dynamic_cast<JSON::INode *>(fnvar));
 	}
 
 	Oper_FunctionCall::executeFn(fnvar,env,args,obj,functor);
@@ -900,6 +935,8 @@ IExecutableVar* Oper_New::findExecutable(Value obj) const {
 			if (obj->isObject())
 				fn = Oper_FunctionCall::findExecutable(nd);
 		}
+	} else {
+		fn = &emptyConstructor;
 	}
 	return fn;
 }

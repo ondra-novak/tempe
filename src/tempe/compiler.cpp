@@ -629,7 +629,7 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 				return new(alloc)Constant(loc, valueFactory->newValue(false));
 			case TokenReader::kwNull:
 				reader.accept();
-				return new(alloc)Constant(loc, valueFactory->newValue(nil));
+				return new(alloc)Constant(loc, JSON::getNullNode());
 			case TokenReader::sVarname:
 				reader.accept();
 				return new (alloc)VariableRef(loc, reader.varname);
