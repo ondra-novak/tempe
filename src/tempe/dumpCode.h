@@ -25,9 +25,12 @@ public:
 	natural labelCounter;
 protected:
 	StringA genLabelName(natural id);
+	StringA genInstWLabel(ConstStrA opcode, natural id);
 	StringA genJumpName(natural id);
 	StringA genJumpOnFalseName(natural id);
 	natural allocLabel();
+
+	JSON::PFactory jsonf;
 };
 
 } /* namespace Tempe */
