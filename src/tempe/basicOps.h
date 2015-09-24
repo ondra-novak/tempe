@@ -365,6 +365,8 @@ namespace Tempe {
 		 Oper_IncludeTrace(const ExprLocation &loc, const FilePath &path, PExprNode nd)
 			:AbstractNode(loc),path(path),expr(nd) {}
 		virtual Value calculate(IExprEnvironment &env) const;
+		const FilePath &getFilePath() const {return path;}
+		PExprNode getExprNode() const {return expr;}
 
 	protected:
 		 FilePath path;
