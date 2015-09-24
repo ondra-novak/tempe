@@ -25,7 +25,6 @@ namespace Tempe {
 
 		FilePath p = loc.getFileName();
 		if (p.getPath().empty()) p = FilePath(ConstStrW(L"."), true);
-		bool frst = true;
 		for (ConstStrA::SplitIterator iter = name.split('/'); iter.hasItems();) {
 			ConstStrA part = iter.getNext();
 			if (part.empty()) {

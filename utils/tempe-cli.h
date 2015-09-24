@@ -8,11 +8,11 @@
 #ifndef MAIN_H_
 #define MAIN_H_
 
-#include "lightspeed/base/framework/app.h"
+#include <lightspeed/base/framework/app.h>
 
-#include "tempe/interfaces.h"
+#include <tempe/interfaces.h>
 
-namespace TempeTest {
+namespace TempeCli {
 
 using namespace LightSpeed;
 using namespace Tempe;

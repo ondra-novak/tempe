@@ -8,14 +8,14 @@
 #include "test.h"
 
 
-#include "lightspeed/base/streams/standardIO.tcc"
-#include "tempe/varTable.h"
-#include "lightspeed/base/iter/iteratorFilter.tcc"
+#include <lightspeed/base/streams/standardIO.tcc>
+#include <tempe/varTable.h>
+#include <lightspeed/base/iter/iteratorFilter.tcc>
 #include <lightspeed/utils/json/jsonfast.tcc>
 
-#include "src/tempe/compiler.h"
-#include "src/tempe/dumpCode.h"
-#include "src/tempe/fileCompiler.h"
+#include <tempe/compiler.h>
+#include <tempe/dumpCode.h>
+#include <tempe/fileCompiler.h>
 namespace TempeTest {
 
 using namespace Tempe;
