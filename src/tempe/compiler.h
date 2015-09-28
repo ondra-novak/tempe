@@ -72,7 +72,6 @@ namespace Tempe {
 			kwCatch,
 			kwWith,
 			kwScope,
-			kwObject,
 			kwWhile,
 			kwFunction,
 			kwBreak,
@@ -83,9 +82,7 @@ namespace Tempe {
 			kwLink,
 			kwJoin,
 			kwMap,		
-			kwInclude,
 			kwImport,
-			kwSet,
 			kwDo,
 			kwOptional,
 			kwTemplate,
@@ -94,6 +91,8 @@ namespace Tempe {
 			kwEcho,
 			kwRepeat,
 			kwUntil,
+			kwVarname,
+			kwInline,
 
 			eof,
 			begin
@@ -136,10 +135,14 @@ namespace Tempe {
 	public:
 
 		Compiler(IRuntimeAlloc &alloc);
+		~Compiler();
 
 		virtual PExprNode compile(TokenReader &reader);
 		virtual PExprNode compileInteractive(TokenReader &reader);
-		virtual PExprNode compileTemplate(TokenReader &reader, EscapeMode em);
+		virtual PExprNode compileTemplate(TokenReader &reader, POutputConfig outputCfg);
+		static EscapeMode getCtFromMime(ConstStrA contentType);
+		virtual std::pair<PExprNode, FilePath> loadCode(ExprLocation loc, ConstStrA name);
+	protected:
 
 		virtual PExprNode compileExprSeq(TokenReader& reader);
 		virtual PExprNode compileAssign(TokenReader& reader);
@@ -173,20 +176,22 @@ namespace Tempe {
 		virtual PExprNode compileTemplateCmd(ExprLocation loc, TokenReader& reader);
 		virtual PExprNode compileInclude(ExprLocation loc, TokenReader &reader);
 		virtual PExprNode compileNEW(ExprLocation loc, TokenReader& reader);
+		virtual PExprNode compileOpVar(ExprLocation loc, TokenReader& reader);
 		virtual PExprNode compileCondition(ExprLocation loc, TokenReader &reader);
 
-		static EscapeMode getCtFromMime(ConstStrA contentType);
 
-		virtual std::pair<PExprNode,FilePath> loadCode(ExprLocation loc, ConstStrA name);
-		PExprNode compileSetCommand(ExprLocation loc, TokenReader& reader);
+		PExprNode compileJSONObject(ExprLocation loc, TokenReader& reader);
+		PExprNode compileJSONArray(ExprLocation loc, TokenReader& reader);
+
+		PExprNode compileSingleExpression(TokenReader &reader);
+		PExprNode compileInline(ExprLocation loc, TokenReader& reader);
 	public:
 		IRuntimeAlloc &alloc;
-		JSON::PFactory valueFactory;
-		EscapeMode curEscapeMode;
+		RefCntPtr<OutputConfig> curOutputConfig;
 		AutoArray<char> buffer;
 
-		VarTable globalConstContext;
-		FakeGlobalScope constContext;
+		IExprEnvironment *curConstScope;
+		JSON::PFactory valueFactory;
 
 private:
 };

@@ -62,7 +62,13 @@ VariableRef::VariableRef(const ExprLocation &loc, const VarName &name)
 }
 
 Value VariableRef::calculate(IExprEnvironment& env) const {
-	return env.getVar(name);
+	try {
+		return env.getVar(name);
+	}
+	catch (LightSpeed::Exception &e) {
+		e.appendReason(ScriptException(THISLOCATION, loc));
+		throw;
+	}
 }
 
 
@@ -576,12 +582,11 @@ Value Oper_FunctionCall::calculate(IExprEnvironment& env) const {
 
 		for (natural i = 0; i < nodecnt; i++) {
 			if (i < cnt && varlist[i].second >= FunctionVar::byReference && varlist[i].second <= FunctionVar::optionalReference) {
-				IGetVarName *n = nodes[i]->getIfcPtr<IGetVarName>();
+				LocalVarRef *n = nodes[i]->getIfcPtr<LocalVarRef>();
 				if (n) {
-					if (n->isDefined(env))
-							calcVals.add(n->getValue(env));
-					else
-							calcVals.add(nil);
+					Value ctx = n->getContext(env);
+					if (ctx == nil) ctx = env.getVar("_current");
+					calcVals.add(new(*env.getFactory().getAllocator()) BoundVar(ctx, n->getName(env)));
 					continue;
 				}
 			}
@@ -594,16 +599,6 @@ Value Oper_FunctionCall::calculate(IExprEnvironment& env) const {
 			res = executeFn(fnvar, env, calcVals, fncontext, true);
 		} else {
 			res = executeFn(fnvar, env, calcVals, context, false);
-		}
-
-		if (anybyref) {
-			for (natural i = 0; i < cnt; i++) {
-				if (i < nodecnt&& (varlist[i].second == FunctionVar::byReference || varlist[i].second == FunctionVar::optionalReference)) {
-					IGetVarName &vn = nodes[i]->getIfc<IGetVarName>();
-					Value c = calcVals[i];
-					if (c != nil) vn.setValue(env,c);
-				}
-			}
 		}
 
 		return res;
@@ -724,6 +719,11 @@ Value Oper_WithDo::calculate(IExprEnvironment& env) const {
 
 }
 
+Oper_WithDo::Isolation Oper_WithDo::getIsolation() const
+{
+	return isol;
+}
+
 Value Oper_Scope::calculate(IExprEnvironment& env) const {
 	LocalScope scope(env);
 	return branch[0]->calculate(scope);
@@ -736,26 +736,6 @@ Value Oper_Object::calculate(IExprEnvironment& env) const {
 }
 
 
-Value Oper_ArrayIndex::calculate(IExprEnvironment& env, const Value* subResults) const {
-	if (subResults[0]->isArray()) {
-		natural index = subResults[1]->getUInt();
-		natural len = subResults[0]->length();
-		if (index < len) {
-			return subResults[0][index];
-		} else {
-			throw RangeException(THISLOCATION,len,index);
-		}
-	} else {
-		String x = subResults[0]->getString();
-		natural index = subResults[1]->getUInt();
-		natural len = x.length();
-		if (index < len) {
-			return env.getFactory().newValue(ConstStrW(x.mid(index,1)));
-		} else {
-			throw RangeException(THISLOCATION,len,index);
-		}
-	}
-}
 
 Value Oper_MemberAccess::calculate(IExprEnvironment& env) const {
 	Value v = branch[0]->calculate(env);
@@ -834,7 +814,17 @@ IGetVarName::ValueWithContext Oper_MemberAccess::getValueWithContext(IExprEnviro
 	}
 }
 
-class EmptyConstructor: public IExecutableVar {
+Tempe::Value Oper_MemberAccess::getContext(IExprEnvironment &env) const
+{
+	Value v = branch[0]->calculate(env);
+	v = convertLink(v);
+	if (v->isObject()) 
+		return v;
+	else
+		throw OperationIsUndefined(THISLOCATION) << ScriptException(THISLOCATION, loc);
+}
+
+class EmptyConstructor : public IExecutableVar {
 public:
 	virtual ConstStringT<VarName_OutMode> getArguments() const {
 		return ConstStringT<VarName_OutMode>();
@@ -970,15 +960,33 @@ bool Oper_ArrayAppend::isDefined(IExprEnvironment& env) const {
 }
 
 void Oper_ArrayAppend::unset(IExprEnvironment& env) {
-	throw OperationIsUndefined(THISLOCATION) << ScriptException(THISLOCATION,loc);
+	Value v = branch[0]->calculate(env);
+	v = convertLink(v);
+	if (v->isArray()) {
+		if (v->empty())
+			throw ArrayIsEmptyException(THISLOCATION) << ScriptException(THISLOCATION, loc);
+		else
+			v->erase(v->length());
+	}
+	else {
+		throw OperationIsUndefined(THISLOCATION) << ScriptException(THISLOCATION, loc);
+	}
+
 }
 
-Oper_ArrayAppend::ValueWithContext Oper_ArrayAppend::getValueWithContext(
-						IExprEnvironment& env) const {
-	throw OperationIsUndefined(THISLOCATION) << ScriptException(THISLOCATION,loc);
+const VarName & Oper_ArrayAppend::getName(IExprEnvironment &env) const
+{
+	try {
+		LocalVarRef &rf = branch[0]->getIfc<LocalVarRef>();
+		return rf.getName(env);
+	}
+	catch (LightSpeed::Exception &e) {
+		e.appendReason(ScriptException(THISLOCATION, loc));
+		throw;
+	}
 }
 
-Value Oper_ArrayAppend::calculate(IExprEnvironment& env,const Value* subResults) const {
+Value Oper_ArrayAppend::calculate(IExprEnvironment& env, const Value* subResults) const {
 	throw OperationIsUndefined(THISLOCATION) << ScriptException(THISLOCATION,loc);
 }
 
@@ -1018,15 +1026,83 @@ Value Oper_IncludeTrace::calculate(IExprEnvironment& env) const {
 Value Oper_ReferenceOper::calculate(IExprEnvironment& env) const {
 	try {
 		LocalVarRef &varNameBranch = branch[0]->getIfc<LocalVarRef>();
-		IGetVarName::ValueWithContext val = varNameBranch.getValueWithContext(env);
+		Value context = varNameBranch.getContext(env);
 		VarName name = varNameBranch.getName(env);
-		return BoundVar(val.context,name).clone(&env.getFactory());
+		if (context == nil) context = env.getVar("_current");
+		JSON::INode *nd = context->getVariable(name);
+		if (nd) {
+			BoundVar *bv = nd->getIfcPtr<BoundVar>();
+			if (bv) return nd;
+		}
+		return BoundVar(context,name).clone(&env.getFactory());
 	} catch (LightSpeed::Exception &e) {
 		throwScriptException(THISLOCATION,loc,e);throw;
 	} catch (const std::exception &e) {
 		throwScriptException(THISLOCATION,loc,e);throw;
 	}
 	throw;
+}
+
+
+Tempe::Value Oper_ArrayCreate::calculate(IExprEnvironment &env) const
+{
+	Value res = env.getFactory().array();
+	for (natural i = 0; i < getN(); i++) {
+		Value v = getBranch(i)->calculate(env);
+		res->add(v);
+	}
+	return res;
+}
+
+
+Tempe::Value Oper_Varname::calculate(IExprEnvironment &env) const
+{
+	try {
+		LocalVarRef &ref = branch[0]->getIfc<LocalVarRef>();
+		if (ref.isDefined(env)) {
+			Value v = ref.getValue(env);
+			BoundVar *bv = v->getIfcPtr<BoundVar>();
+			if (bv) {
+				return env.getFactory().newValue(bv->getVarname());
+			}
+		}
+		return env.getFactory().newValue(ref.getName(env));
+	}
+	catch (LightSpeed::Exception &e) {
+		e.appendReason(ScriptException(THISLOCATION, this->loc));
+		throw;
+	}
+}
+
+
+Value dereferenceOfValue(const Value &v) 
+{
+		LinkValue *ln = v->getIfcPtr<LinkValue>();
+	if (ln) return ln->link.get();
+
+	BoundVar *bv = v->getIfcPtr<BoundVar>();
+	if (bv) return bv->dereference();
+
+	return v;
+}
+
+Tempe::Value Oper_Dereference::calculate(IExprEnvironment &env, const Value *subResults) const
+{
+
+	const Value v = subResults[0];
+	return dereferenceOfValue(v);
+}
+
+bool Oper_Dereference::tryToEvalConst(IExprEnvironment &env, Value &val)
+{
+	Value x;
+	if (branch[0]->tryToEvalConst(env, x)) {
+		val = dereferenceOfValue(x);
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 

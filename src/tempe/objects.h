@@ -22,45 +22,35 @@ class GCReg {
 public:
 	GCReg *prev, *next;
 
-	GCReg():prev(0),next(0) {}
-	virtual ~GCReg() {
-		unregisterFromGC();
-	}
+	GCReg();
+	virtual ~GCReg();
 
-	void registerToGC(GCReg &root) {
-		next = root.next;
-		prev = &root;
-		if (next) next->prev = this;
-		root.next = this;
-	//	LS_LOG.debug("Registered object: %1") << (natural)this;
-	}
+	void registerToGC(GCReg &root);
 
-	void unregisterFromGC() {
-		if (next) next->prev = prev;
-		if (prev) prev->next = next;
-		next = prev = 0;
-//		LS_LOG.debug("Unregistered object: %1") << (natural)this;
-	}
+	void unregisterFromGC();
 
 	virtual void clear() = 0;
+
+	bool isRegistered() const;
+
 
 };
 
 class Object: public JSON::Object_t, public GCReg {
 public:
-	virtual void clear() {
-		JSON::PNode hold = this;
-		fields.clear();
-	}
+	virtual void clear();
 };
 
 class Array: public JSON::Array_t, public GCReg {
 public:
-	virtual void clear() {
-		JSON::PNode hold = this;
-		list.clear();
-	}
+	virtual void clear();
 
+};
+
+class GCRegRoot : public GCReg { 
+public:
+	void clear();
+	void clearAll();
 };
 
 

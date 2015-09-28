@@ -46,8 +46,12 @@ public:
 	virtual IExprEnvironment &getInternalGlobalEnv() ;
 	virtual const IExprEnvironment &getGlobalEnv() const ;
 	virtual const IExprEnvironment &getInternalGlobalEnv() const;
-
+	
+	//construct global variable table
 	VarTable();
+	//construct global variable table with custom allocator (will be used to allocate variables)
+	explicit VarTable(IRuntimeAlloc &alloc);
+
 	~VarTable();
 
 	void setStaticVar(VarNameRef name, const Value val);
@@ -69,13 +73,14 @@ protected:
 
 	class Factory_t;
 
+
+	IRuntimeAlloc &alloc;
+
+	GCRegRoot gcreg;
 	JSON::PFactory factory;
 	JSON::PNode table;
 	JSON::PNode staticTable;
 	natural cycleTm;
-
-	class GCRegRoot: public GCReg {void clear() {};};
-	GCRegRoot gcreg;
 
 	JSON::PNode regToGc(const JSON::PNode &obj);
 
@@ -110,6 +115,7 @@ protected:
 
 	IExprEnvironment &parent;
 	IExprEnvironment &global;
+	IExprEnvironment &internalGlobal;
 	JSON::PFactory factory;
 	JSON::PNode table;
 	natural cycleTm;

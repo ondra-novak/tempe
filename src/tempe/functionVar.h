@@ -18,6 +18,7 @@
 #include <lightspeed/utils/json/jsondefs.h>
 
 #include "varTable.h"
+#include "../../../lightspeed/src/lightspeed/utils/json/json.h"
 
 
 
@@ -67,11 +68,6 @@ public:
 	FunctionScope(IExprEnvironment &env,
 			ConstStringT<AbstractFunctionVar::VarName_OutMode> argdef,
 			ArrayRef<Value> values);
-	~FunctionScope();
-
-protected:
-	ConstStringT<AbstractFunctionVar::VarName_OutMode> arguments;
-	ArrayRef<Value> values;
 
 };
 
@@ -111,10 +107,48 @@ public:
 	virtual ConstStrA getStringUtf8() const;
 	virtual linteger getLongInt() const ;
 	virtual lnatural getLongUInt() const;
-	virtual bool empty() const {return true;}
+	virtual bool empty() const;
 	virtual void serialize(IVtWriteIterator<char> &output, bool escapeUTF8) const;
 	virtual JSON::INode *clone(JSON::PFactory factory) const;
+
+	
+
 	Value resolve() const;
+	VarName getVarname();
+
+	virtual INode * getVariable(ConstStrA) const ;
+
+	virtual natural getEntryCount() const ;
+
+	virtual INode * getEntry(natural idx) const ;
+
+	virtual bool enumEntries(const JSON::IEntryEnum &fn) const ;
+
+	virtual INode * add(JSON::PNode) ;
+
+	virtual INode * add(ConstStrA, JSON::PNode nd) ;
+
+	virtual INode* erase(natural) ;
+
+	virtual INode* erase(ConstStrA) ;
+
+	virtual INode* enableMTAccess() ;
+
+	virtual JSON::Iterator getFwIter() const ;
+
+	virtual natural getUInt() const ;
+
+	virtual JSON::INode &operator [](ConstStrA v) const;
+	virtual JSON::INode &operator [](natural index) const;
+
+	virtual bool isUtf8() const ;
+
+	///Faster access to a variable - dynamic cast is slow
+	virtual void *proxyInterface(IInterfaceRequest &p);
+	///Faster access to a variable - dynamic cast is slow
+	virtual const void *proxyInterface(IInterfaceRequest &p) const;
+	Value getConext();
+	Value dereference();
 public:
 	Value context;
 	VarName varname;

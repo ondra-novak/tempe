@@ -140,5 +140,10 @@ void ExecutionTimeout::message(ExceptionMsg &msg) const
 	msg("Execution timeout");
 }
 
+void ArrayIsEmptyException::message(ExceptionMsg &msg) const
+{
+	msg("Array is empty");
+}
+
 }
 

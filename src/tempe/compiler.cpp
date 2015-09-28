@@ -11,6 +11,7 @@
 #include "tempeOps.h"
 
 
+
 namespace Tempe {
 
 	static NamedEnumDef<TokenReader::Symbol> kwDef[] = {
@@ -25,16 +26,14 @@ namespace Tempe {
 		{ TokenReader::kwDefined, "defined" },
 		{ TokenReader::kwFirstDefined, "firstDefined" },
 		{ TokenReader::kwUnset, "unset" },
-		{ TokenReader::kwVar, "var" },
+		{ TokenReader::kwVar, "varname" },
 		{ TokenReader::kwNew, "new" },
 		{ TokenReader::kwIsNull, "isnull" },
 		{ TokenReader::kwLoop, "loop" },
 		{ TokenReader::kwTry, "try" },
 		{ TokenReader::kwCatch, "catch" },
 		{ TokenReader::kwWith, "with" },
-		{ TokenReader::kwSet, "set" },
 		{ TokenReader::kwScope, "scope" },
-		{ TokenReader::kwObject, "object" },
 		{ TokenReader::kwWhile, "while" },
 		{ TokenReader::kwFunction, "function" },
 		{ TokenReader::kwBreak, "break" },
@@ -42,10 +41,7 @@ namespace Tempe {
 		{ TokenReader::kwTrue, "true" },
 		{ TokenReader::kwFalse, "false" },
 		{ TokenReader::kwNull, "null" },
-		{ TokenReader::kwLink, "link" },
-		{ TokenReader::kwJoin, "join" },
-		{ TokenReader::kwMap, "map" },
-		{ TokenReader::kwInclude, "include" },
+		{ TokenReader::kwLink, "->" },
 		{ TokenReader::kwImport, "import" },
 		{ TokenReader::kwDo, "do" },
 		{ TokenReader::kwOptional, "optional" },
@@ -56,6 +52,8 @@ namespace Tempe {
 		{ TokenReader::kwEcho, "echo" },
 		{ TokenReader::kwRepeat, "repeat" },
 		{ TokenReader::kwUntil, "until" },
+		{ TokenReader::kwVarname, "getvarname" },
+		{ TokenReader::kwInline, "inline" },
 		{ TokenReader::begin, "<begin>" },
 		{ TokenReader::eof, "<eof>" },
 		{ TokenReader::symbUnknown, "<unknown-symbol>" },
@@ -123,7 +121,7 @@ namespace Tempe {
 			{emJS,"text/javascript"},
 	};
 
-	static NamedEnum<EscapeMode> strMimeCt(strMimeCtDef);
+	NamedEnum<EscapeMode> strMimeCt(strMimeCtDef);
 
 
 	TokenReader::Symbol TokenReader::getNext()
@@ -302,7 +300,7 @@ namespace Tempe {
 	}
 
 	void TokenReader::resetLevel(bool interactive)
-	{
+	{		
 		level = interactive ? 0 : 1;
 	}
 
@@ -330,15 +328,52 @@ namespace Tempe {
 	}
 
 	Compiler::Compiler(IRuntimeAlloc &alloc)
-		:alloc(alloc), valueFactory(JSON::create(alloc))
-		, curEscapeMode(emPlain), constContext(globalConstContext)
+		:alloc(alloc)
+		, curOutputConfig(new(alloc) OutputConfig)
+		, curConstScope(0)
 
 	{
 
 	}
 
+	Compiler::~Compiler()
+	{
+
+	}
+
+	class CompilerContext {
+	public:
+		VarTable globalConstContext;
+		FakeGlobalScope constContext;
+		IExprEnvironment * &curContext;
+		JSON::PFactory &curFactory;
+		IExprEnvironment * prevContext;;
+		JSON::PFactory prevFactory;
+
+		CompilerContext(IExprEnvironment * &context, JSON::PFactory &factory)
+			:constContext(globalConstContext)
+			, curContext(context)
+			, curFactory(factory)
+		{
+			prevContext = context;
+			prevFactory = factory;
+			context = &constContext;
+			factory = &constContext.getFactory();
+		}
+
+		~CompilerContext() {
+			curFactory = prevFactory;
+			curContext = prevContext;
+		}
+			
+
+
+	};
+
 	PExprNode Compiler::compile(TokenReader &reader)
 	{
+		CompilerContext ctx(curConstScope, valueFactory);
+
 		reader.resetLevel(false);
 		if (reader.getNext() == TokenReader::begin) 
 			reader.accept();
@@ -351,6 +386,9 @@ namespace Tempe {
 
 	PExprNode Compiler::compileInteractive(TokenReader &reader)
 	{
+		CompilerContext ctx(curConstScope, valueFactory);
+
+
 		reader.resetLevel(true);
 		if (reader.getNext() == TokenReader::begin)
 			reader.accept();
@@ -408,7 +446,7 @@ namespace Tempe {
 			reader.accept();
 			PExprNode b = compileAssign(reader);
 			Value v;
-			if (b->getIfcPtr<Constant>() == 0 && b->tryToEvalConst(constContext,v)) 
+			if (b->getIfcPtr<Constant>() == 0 && b->tryToEvalConst(*curConstScope,v)) 
 				b =  new(alloc)Constant(loc, v);
 			
 			return (new(alloc)Oper_Assign(loc))
@@ -416,7 +454,7 @@ namespace Tempe {
 		}
 		else {
 			Value v;
-			if (a->getIfcPtr<Constant>() == 0 && a->tryToEvalConst(constContext, v)) {
+			if (a->getIfcPtr<Constant>() == 0 && a->tryToEvalConst(*curConstScope, v)) {
 				return new(alloc)Constant(a->getSourceLocation(), v);
 			}
 			else {
@@ -526,7 +564,20 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 	return new (alloc) Oper_New(*fncall);
 	}
 
-	PExprNode Compiler::compileUNAR(TokenReader& reader)
+
+PExprNode Compiler::compileOpVar(ExprLocation loc, TokenReader& reader)
+{
+	if (reader.getNext() == TokenReader::sValue) {
+		reader.accept();
+		return new(alloc)VariableRef(loc, VarName(reader.value->getStringUtf8()));
+	}
+	else {
+		return (new(alloc)Oper_Var(loc))
+			->setBranch(0, compileUNARSuffix(reader));
+	}
+}
+
+PExprNode Compiler::compileUNAR(TokenReader& reader)
 	{
 		ExprLocation loc = reader.getLocation();
 		switch (reader.getNext()) {
@@ -550,8 +601,8 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 					->setBranch(0, compileUNARSuffix(reader));
 			case TokenReader::kwVar:
 				reader.accept();
-				return (new(alloc)Oper_Var(loc))
-					->setBranch(0, compileUNARSuffix(reader));
+				return compileOpVar(loc, reader);
+
 			case TokenReader::kwNew:
 				reader.accept();
 				return compileNEW(loc, reader);
@@ -575,9 +626,6 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 			case TokenReader::kwScope:
 				reader.accept();
 				return compileOpScope(loc, reader);
-			case TokenReader::kwObject:
-				reader.accept();
-				return compileOpObject(loc, reader);
 			case TokenReader::kwWhile:
 				reader.accept();
 				return compileOpWhile(loc, reader);
@@ -586,7 +634,7 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 				return compileOpFunction(loc, reader);
 			case TokenReader::kwEcho:
 				reader.accept();
-				return (new(alloc)OutputResult(loc, curEscapeMode))->setBranch(0,compileAssign(reader));
+				return (new(alloc)OutputResult(loc, curOutputConfig, curOutputConfig->escMode))->setBranch(0,compileAssign(reader));
 			case TokenReader::kwBreak:
 				reader.accept();
 				return (new(alloc)Oper_Break(loc));
@@ -594,9 +642,6 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 				reader.accept();
 				return (new(alloc)Oper_Throw(loc))
 					->setBranch(0, compileUNARSuffix(reader));
-			case TokenReader::kwSet:
-				reader.accept();
-				return compileSetCommand(loc, reader);
 			case TokenReader::kwForeach:
 				reader.accept();
 				return compileForEach(loc, reader);
@@ -609,6 +654,10 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 			case TokenReader::kwRepeat:
 				reader.accept();
 				return compileOpRepeatUntil(loc, reader);
+			case TokenReader::kwVarname:
+				reader.accept();
+				return (new(alloc)Oper_Varname(loc))
+					->setBranch(0, compileUNAR(reader));
 			case TokenReader::symbMinus:
 				reader.accept();
 				return (new(alloc)Oper_Fn1(loc,&operUnarMinus))
@@ -616,16 +665,26 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 			case TokenReader::symbPlus:
 				reader.accept();
 				return  compileUNARSuffix(reader);
+			case TokenReader::symbMult:
+				reader.accept();
+				return  (new(alloc)Oper_Dereference(loc))
+					->setBranch(0, compileUNARSuffix(reader));
 			case TokenReader::symbAmp:
 				reader.accept();
 				return (new(alloc)Oper_ReferenceOper(loc))
 						->setBranch(0,compileUNARSuffix(reader));
-			case TokenReader::symbOBracket: 
+			case TokenReader::symbOBrace:
+				reader.accept();
+				return compileJSONObject(loc, reader);
+			case TokenReader::symbOSqBracket:
+				reader.accept();
+				return compileJSONArray(loc, reader);
+			case TokenReader::symbOBracket:
 				reader.accept();
 				return compileSubExpr(loc, reader);
 			case TokenReader::sValue:
 				reader.accept();
-				return new(alloc) Constant(loc, reader.value);
+				return new(alloc) Constant(loc, reader.value->clone(valueFactory));
 			case TokenReader::kwTrue:
 				reader.accept();
 				return new(alloc)Constant(loc, valueFactory->newValue(true));
@@ -644,6 +703,9 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 			case TokenReader::kwConst:
 				reader.accept();
 				return compileConst(loc, reader);
+			case TokenReader::kwInline:
+				reader.accept();
+				return compileInline(loc, reader);
 			default: {
 				TextFormatBuff<char> msg;
 				msg("Unexpected '%1'") << kwList[reader.getNext()];
@@ -713,7 +775,7 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 			PExprNode index = compileExprSeq(reader);
 			if (reader.getNext() == TokenReader::symbCSqBracket) {
 				reader.accept();
-				return (new(alloc)Oper_ArrayIndex(loc))->setBranch(0, nd)->setBranch(1, index);
+				return (new(alloc)Oper_Fn2(loc,&fnArrIndex))->setBranch(0, nd)->setBranch(1, index);
 			}
 			else {
 				throw ParseError(THISLOCATION, loc, "Expected ']'");
@@ -721,14 +783,16 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 		}
 	}
 
-	PExprNode Compiler::compileTemplate(TokenReader& reader, EscapeMode em) {
-		EscapeMode md = curEscapeMode;
-		curEscapeMode = em;
+	PExprNode Compiler::compileTemplate(TokenReader& reader, POutputConfig outputCfg) {
+		CompilerContext ctx(curConstScope, valueFactory);
+
+		POutputConfig md = curOutputConfig;
+		curOutputConfig = outputCfg;
 		try {
 			return compileTemplateText(reader.getLocation(), reader);
-			curEscapeMode=md;
+			curOutputConfig = md;
 		} catch (...) {
-			curEscapeMode=md;
+			curOutputConfig = md;
 			throw;
 		}
 	}
@@ -843,40 +907,66 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 
 	Tempe::PExprNode Compiler::compileOpWith(ExprLocation loc, TokenReader& reader)
 	{
-		reader.enterLevel();
-		PExprNode expr = compileUNARSuffix(reader);
-		PExprNode cmdlist;
-		Oper_WithDo::Isolation isol = Oper_WithDo::isoDefault;
-		if (reader.getNext() == TokenReader::sVarname && reader.varname == "isolation") {
+		if (reader.getNext() == TokenReader::kwConst) {
 			reader.accept();
-			if (reader.getNext() == TokenReader::sVarname) {
-				if (reader.varname == "none" || reader.varname == "rw") {
-					isol = Oper_WithDo::isoDefault;
-				}
-				else if (reader.varname == "readonly" || reader.varname == "ro") {
-					isol = Oper_WithDo::isoReadonly;
-				}
-				else if (reader.varname == "full") {
-					isol = Oper_WithDo::isoFull;
-				}
-				else {
-					throw ParseError(THISLOCATION, reader.getLocation(), "Unknown isolation level");
-				}
-				reader.accept();
+			reader.enterLevel();
+			PExprNode expr = compileUNARSuffix(reader);
+			VariableRef *vref = expr->getIfcPtr<VariableRef>();
+			if (vref && !curConstScope->varExists(vref->getName())) {
+				curConstScope->setVar(vref->getName(), valueFactory->object());
 			}
-		}
-		cmdlist = compileExprSeq(reader);
-	
-		if (reader.getNext() == TokenReader::kwEnd) {
-			reader.accept();
-			reader.leaveLevel();
-			return (new(alloc)Oper_WithDo(reader.getLocation(), isol))
-				->setBranch(0, expr)
-				->setBranch(1, cmdlist);
+			Value constVar = expr->calculate(*curConstScope);
+			IExprEnvironment *prevScope = curConstScope;
+			LocalScope scope(*curConstScope, constVar);
+			try {
+				curConstScope = &scope;
+				PExprNode nx = compileExprSeq(reader);
+				curConstScope = prevScope;
+				if (reader.getNext() == TokenReader::kwEnd) {
+					reader.accept();
+				}
+				reader.leaveLevel();
+				return nx;
+			}
+			catch (...) {
+				reader.leaveLevel();
+				curConstScope = prevScope;
+				throw;
+			}
+
 		}
 		else {
-			throwExpectedError(reader.getLocation(), TokenReader::kwEnd);
-			throw;
+			reader.enterLevel();
+			PExprNode expr = compileUNARSuffix(reader);
+			PExprNode cmdlist;
+			Oper_WithDo::Isolation isol = Oper_WithDo::isoDefault;
+			if (reader.getNext() == TokenReader::sVarname && reader.varname == "isolation") {
+				reader.accept();
+				if (reader.getNext() == TokenReader::sVarname) {
+					if (reader.varname == "none" || reader.varname == "rw") {
+						isol = Oper_WithDo::isoDefault;
+					}
+					else if (reader.varname == "readonly" || reader.varname == "ro") {
+						isol = Oper_WithDo::isoReadonly;
+					}
+					else if (reader.varname == "full") {
+						isol = Oper_WithDo::isoFull;
+					}
+					else {
+						throw ParseError(THISLOCATION, reader.getLocation(), "Unknown isolation level");
+					}
+					reader.accept();
+				}
+			}
+			cmdlist = compileExprSeq(reader);
+
+			if (reader.getNext() == TokenReader::kwEnd) {
+				reader.accept();
+			}
+			reader.leaveLevel();
+			return (new(alloc)Oper_WithDo(reader.getLocation(), isol))
+					->setBranch(0, expr)
+					->setBranch(1, cmdlist);			
 		}
 	}
 
@@ -925,12 +1015,12 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 				reader.leaveLevel();
 				ExprLocation loc = reader.getLocation();
 				Value v1, v2;
-				if (cond->tryToEvalConst(constContext, v1)) {
+				if (cond->tryToEvalConst(*curConstScope, v1)) {
 					if (v1->getBool() == false) return new (alloc)Constant(loc, valueFactory->newValue(false));
-					else if (body->tryToEvalConst(constContext, v2))
+					else if (body->tryToEvalConst(*curConstScope, v2))
 						throw ParseError(THISLOCATION, loc, "Infinite cycle");
 				}
-				if (body->tryToEvalConst(constContext,v2)) {
+				if (body->tryToEvalConst(*curConstScope, v2)) {
 					return (new(alloc)Oper_Cycle(loc))->setBranch(0, cond);
 				}
 				else {
@@ -1096,19 +1186,24 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 
 	Tempe::PExprNode Compiler::compileTemplateSubExpr(ExprLocation loc, TokenReader& reader)
 	{
-		reader.expectLabel();
 		TokenReader::Symbol s = reader.getNext();
 		EscapeMode escMode;
-		if (s == TokenReader::sLabel) {
+		if (s == TokenReader::sVarname && reader.peek()==':') {
 			 escMode = strEscapeMode[reader.varname];
 			reader.accept();
+			if (reader.getNext() != TokenReader::symbDblColon) {
+				throwExpectedError(reader.getLocation(), TokenReader::symbDblColon);
+			}
+			reader.accept();			
 		}
 		else {
-			escMode = curEscapeMode;
+			escMode = curOutputConfig->escMode;
 		}
-
 		PExprNode expr = compileExprSeq(reader);
-		return (new(alloc)OutputResult(loc, escMode))->setBranch(0, expr);
+		return (new(alloc)OutputResult(loc, curOutputConfig, escMode))->setBranch(0, expr);
+
+		
+		
 	}
 
 	//foreach x print(this.neco) end
@@ -1125,38 +1220,91 @@ PExprNode Compiler::compileNEW(ExprLocation loc,
 			->setBranch(1, body);
 	}
 
+
+	template<typename K>
+	void glDetachDetectObjCycle(K &container) {
+		natural l = container.length();
+		JSON::INode *i = container[l-1];
+
+		GCReg *rg = i->getIfcPtr<GCReg>();
+		if (rg && rg->isRegistered()) {
+
+			for (JSON::Iterator iter = i->getFwIter(); iter.hasItems();) {
+				JSON::INode *n = iter.getNext().node;
+				if (n->isObject() || n->isArray()) {
+					for (natural z = 0; z < l; z++)
+						if (n == container[z]) throw ErrorMessageException(THISLOCATION, "Cycle detected in const object. Cyclic references between const objects are not supported when they are inserted into the code");
+
+					container.add(n);
+					glDetachDetectObjCycle(container);
+					container.trunc(1);
+				}
+			}
+
+			rg->unregisterFromGC();
+		}
+
+		
+	}
+
+	static Value gcDetach(Value param1)
+	{
+		AutoArray<JSON::INode *, SmallAlloc<32> >container;
+		container.add(param1);
+		glDetachDetectObjCycle(container);
+		return param1;
+	}
+
+
 	Tempe::PExprNode Compiler::compileConst(ExprLocation loc, TokenReader& reader)
 	{
 		PExprNode expr = compileAssign(reader);
 
-		LocalScope scope(static_cast<IExprEnvironment &>(constContext));
-		return new(alloc)Constant(loc, expr->calculate(constContext));
+		try {
+			LocalScope scope(static_cast<IExprEnvironment &>(*curConstScope));
+			return new(alloc)Constant(loc, gcDetach(expr->calculate(*curConstScope)));
+		}
+		catch (LightSpeed::Exception &e) {
+			throw ParseError(THISLOCATION, loc, "Cannot insert constant") << e;
+		}
 	}
 
 	Tempe::PExprNode Compiler::compileTemplateCmd(ExprLocation loc, TokenReader& reader)
 	{
-		reader.expectLabel();
-		if (reader.getNext() != TokenReader::sVarname || reader.getNext() != TokenReader::sLabel) {
-			reader.accept();
-			EscapeMode escMode = strEscapeMode[reader.varname];
-			EscapeMode prev = curEscapeMode;
-			curEscapeMode = escMode;
-			PExprNode expr = compileAssign(reader);
-			curEscapeMode = prev;
-			if (reader.getNext() == TokenReader::kwEnd) {
+		PExprNode jsonCmd = compileUNARSuffix(reader);
+		Value obj = jsonCmd->calculate(*curConstScope);
+
+		if (!obj->isObject()) {
+			throw ParseError(THISLOCATION, loc, "Template configuration must be object");
+		}
+
+		POutputConfig newcfg = new OutputConfig(*curOutputConfig);
+		POutputConfig oldcfg = curOutputConfig;
+		try {
+			newcfg->load(obj);
+		}
+		catch (LightSpeed::Exception &e) {
+			throw ParseError(THISLOCATION, loc, "Failed to parse template configuration") << e;
+		}
+
+		try {
+			curOutputConfig = newcfg;
+			PExprNode expr = compileExprSeq(reader);
+			curOutputConfig = oldcfg;
+			if (reader.getNext() == TokenReader::kwEnd)
 				reader.accept();
-			}
 			return expr;
 		}
-		else
-			throwExpectedError(loc, TokenReader::sLabel);
-		throw;
+		catch (...) {
+			curOutputConfig = oldcfg;
+			throw;
+		}
 	}
 
 PExprNode Compiler::compileInclude(ExprLocation loc, TokenReader& reader) {
 		PExprNode expr = compileAssign(reader);
 
-		LocalScope scope(static_cast<IExprEnvironment &>(constContext));
+		LocalScope scope(static_cast<IExprEnvironment &>(*curConstScope));
 		Value v = expr->calculate(scope);
 		ConstStrA name = v->getStringUtf8();
 		try {
@@ -1206,24 +1354,146 @@ PExprNode Compiler::compileOpRepeatUntil(ExprLocation loc, TokenReader& reader) 
 
 }
 
-Tempe::PExprNode Compiler::compileSetCommand(ExprLocation loc, TokenReader& reader)
+Tempe::PExprNode Compiler::compileJSONObject(ExprLocation loc, TokenReader& reader)
 {
-	PExprNode var = compileUNARSuffix(reader);
-	TokenReader::Symbol s = reader.getNext();
-	bool onecycle = false;
-	if (s == TokenReader::symbEqual || s == TokenReader::symbAsssign) {
-		reader.accept();
-		loc = reader.getLocation();
-		PExprNode expr = compileOR(reader);
-		PExprNode o = (new(alloc)Oper_Assign(loc))
-			->setBranch(0, var)
-			->setBranch(1, expr);
-		var = o;
-		s = reader.getNext();
-		onecycle = true;
+	Value constObj = valueFactory->object();
+	PExprNode root = nil;
+	reader.enterLevel();
+	if (reader.getNext() != TokenReader::symbCBrace) {
+		bool willcontinue;
+		do {
+			loc = reader.getLocation();
+			StringA varname;
+			if (reader.getNext() == TokenReader::sValue) {
+				reader.accept();
+				varname = reader.value->getStringUtf8();
+			}
+			else if (reader.getNext() == TokenReader::sVarname) {
+				reader.accept();
+				varname = reader.varname;
+			}
+			else if (reader.getNext() == TokenReader::kwConst) {
+				reader.accept();
+				PExprNode expr = compileAssign(reader);
+
+				LocalScope scope(static_cast<IExprEnvironment &>(*curConstScope));
+				varname = expr->calculate(scope)->getStringUtf8();
+			}
+			else {
+				TokenReader::Symbol expected[] = { TokenReader::sValue,
+					TokenReader::sVarname, TokenReader::kwConst};
+				throwExpectedError(loc, ConstStringT<TokenReader::Symbol>(expected, 3));
+			}
+			if (reader.getNext() != TokenReader::symbDblColon) {
+				throwExpectedError(loc, TokenReader::symbDblColon);
+			}
+			reader.accept();
+			PExprNode expr = compileOR(reader);
+
+			PExprNode assign = (new(alloc)Oper_Assign(loc))
+				->setBranch(0, new (alloc)VariableRef(loc, varname))
+				->setBranch(1, expr);
+			if (root != nil) {
+				root = (new(alloc)Oper_Comma(loc))->setBranch(0, root)->setBranch(1, assign);
+			}
+			else {
+				root = assign;
+			}
+
+			Value right;
+			if (constObj != nil) {
+				if (expr->tryToEvalConst(*curConstScope, right)) {
+					constObj->add(varname, right);
+				}
+				else {
+					constObj = nil;
+				}
+			}
+				
+
+			loc = reader.getLocation();
+			if (reader.getNext() != TokenReader::symbComma && reader.getNext() != TokenReader::symbCBrace) {
+				TokenReader::Symbol expected[] = { TokenReader::symbComma,
+					TokenReader::symbCBrace };
+				throwExpectedError(loc, ConstStringT<TokenReader::Symbol>(expected, 2));
+			}
+			willcontinue = (reader.getNext() == TokenReader::symbComma);
+			reader.accept();
+		} while (willcontinue);
 	}
-	if (!onecycle) throwExpectedError(loc, TokenReader::symbEqual);
-	return var;
+	else {
+		reader.accept();
+	}
+	reader.leaveLevel();
+	if (constObj != nil) return new (alloc)Constant(loc, constObj);
+	else return (new(alloc)Oper_Object(loc))->setBranch(0, root);
+}
+
+Tempe::PExprNode Compiler::compileJSONArray(ExprLocation loc, TokenReader& reader)
+{
+	Value constObj = valueFactory->array();
+	AutoArray<PExprNode> args;
+	reader.enterLevel();
+	if (reader.getNext() != TokenReader::symbCSqBracket) {
+		bool willcontinue;
+		do {
+			loc = reader.getLocation();
+			PExprNode expr = compileOR(reader);
+
+			args.add(expr);
+
+			Value right;
+			if (constObj != nil) {
+				if (expr->tryToEvalConst(*curConstScope, right)) {
+					constObj->add(right);
+				}
+				else {
+					constObj = nil;
+				}
+			}
+
+
+			loc = reader.getLocation();
+			if (reader.getNext() != TokenReader::symbComma && reader.getNext() != TokenReader::symbCSqBracket) {
+				TokenReader::Symbol expected[] = { TokenReader::symbComma,
+					TokenReader::symbCSqBracket };
+				throwExpectedError(loc, ConstStringT<TokenReader::Symbol>(expected, 2));
+			}
+			willcontinue = (reader.getNext() == TokenReader::symbComma);
+			reader.accept();
+		} while (willcontinue);
+	}
+	else {
+		reader.accept();
+	}
+	reader.leaveLevel();
+	if (constObj != nil) return new (alloc)Constant(loc, constObj);
+	else  {
+		RefCntPtr<Oper_ArrayCreate> out = new(alloc)Oper_ArrayCreate(loc);
+		out->setBranches(args);
+		return out.get();
+	}
+	
+
+}
+
+Tempe::PExprNode Compiler::compileSingleExpression(TokenReader &reader)
+{
+	return compileOR(reader);
+}
+
+Tempe::PExprNode Compiler::compileInline(ExprLocation loc, TokenReader& reader)
+{
+	PExprNode nd = compileSingleExpression(reader);
+
+	Value v = nd->calculate(*curConstScope);
+	FunctionVar *fv = v->getIfcPtr<FunctionVar>();
+	if (fv) {
+		return fv->getCode();
+	}
+	else {
+		throw ParseError(THISLOCATION, loc, "You cannot inline such object. Only function can be subject of inline");
+	}
 }
 
 }

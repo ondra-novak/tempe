@@ -10,6 +10,7 @@
 #include "lightspeed/base/containers/autoArray.h"
 
 #include "interfaces.h"
+#include "objects.h"
 namespace Tempe {
 
 	Value convertLink(const Value &v);
@@ -22,8 +23,9 @@ namespace Tempe {
 		virtual Value calculate(IExprEnvironment &env) const;
 		const Value &getValue() const;
 	protected:
-		Value val;
+		Value val;		
 	};
+
 
 	class IGetVarName: public IInterface {
 	public:
@@ -39,6 +41,7 @@ namespace Tempe {
 		virtual bool isDefined(IExprEnvironment &env) const = 0;
 		virtual void unset(IExprEnvironment &env) = 0;
 		virtual ValueWithContext getValueWithContext(IExprEnvironment &env) const = 0;
+		virtual Value getContext(IExprEnvironment &env) const = 0;
 
 	};
 
@@ -52,6 +55,7 @@ namespace Tempe {
 		virtual ValueWithContext getValueWithContext(IExprEnvironment &env) const {
 			return ValueWithContext(getValue(env),nil);
 		}
+		virtual Value getContext(IExprEnvironment &env) const { return 0; }
 
 	};
 
@@ -72,6 +76,7 @@ namespace Tempe {
 		Oper_Fn1(const ExprLocation &loc, Fn fn) :NaryNode<1>(loc), fn(fn) {}
 		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
+		Fn getFn() const { return fn; }
 	protected:
 		Fn fn;
 	};
@@ -82,6 +87,7 @@ namespace Tempe {
 		Oper_Fn2(const ExprLocation &loc,Fn fn):NaryNode<2>(loc),fn(fn) {}
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
 		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
+		Fn getFn() const { return fn; }
 	protected:
 		Fn fn;
 	};
@@ -92,6 +98,7 @@ namespace Tempe {
 		Oper_Fn3(const ExprLocation &loc,Fn fn):NaryNode<3>(loc),fn(fn) {}
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
 		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
+		Fn getFn() const { return fn; }
 	protected:
 		Fn fn;
 	};
@@ -102,18 +109,12 @@ namespace Tempe {
 		Oper_Fn4(const ExprLocation &loc,Fn fn):NaryNode<4>(loc),fn(fn) {}
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
 		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
+		Fn getFn() const { return fn; }
 	protected:
 		Fn fn;
 	};
 
-	class Oper_ArrayIndex: public NaryNode<2> {
-	public:
-		Oper_ArrayIndex(const ExprLocation &loc):NaryNode<2>(loc) {}
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
-
-	};
-
-	class Oper_ArrayAppend: public NaryNode<1>, public IGetVarName {
+	class Oper_ArrayAppend: public NaryNode<1>, public LocalVarRef {
 	public:
 		Oper_ArrayAppend(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
@@ -123,7 +124,9 @@ namespace Tempe {
 		virtual void setValue(IExprEnvironment &env, const Value &val);
 		virtual bool isDefined(IExprEnvironment &env) const;
 		virtual void unset(IExprEnvironment &env);
-		virtual ValueWithContext getValueWithContext(IExprEnvironment &env) const;
+		virtual const VarName & getName(IExprEnvironment &env) const;
+
+
 
 	};
 
@@ -143,6 +146,7 @@ namespace Tempe {
 		virtual const VarName &getName(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
 		virtual ValueWithContext getValueWithContext(IExprEnvironment &env) const;
+		virtual Value getContext(IExprEnvironment &env) const;
 
 	};
 
@@ -263,7 +267,7 @@ namespace Tempe {
 		Oper_WithDo(const ExprLocation &loc, Isolation isol) :NaryNode<2>(loc),isol(isol) {}
 		virtual Value calculate(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
-
+		Isolation getIsolation() const;
 		Isolation isol;
 	};
 
@@ -298,6 +302,13 @@ namespace Tempe {
 		mutable VarName result;
 	};
 
+	class Oper_Varname : public NaryNode<1> {
+	public:
+		Oper_Varname(const ExprLocation &loc) :NaryNode<1>(loc) {}
+		virtual Value calculate(IExprEnvironment &env) const;
+		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const { throw; }
+	};
+
 	class Oper_FnChr: public VariadicNode {
 	public:
 		Oper_FnChr(const ExprLocation &loc):VariadicNode(loc) {}
@@ -317,6 +328,15 @@ namespace Tempe {
 	};
 
 
+	class Oper_ArrayCreate : public VariadicNode {
+	public:
+		Oper_ArrayCreate(const ExprLocation &loc) :VariadicNode(loc) {}
+
+		virtual Value calculate(IExprEnvironment &env) const ;
+
+
+	};
+
 	class FunctionVar;
 	class IExecutableVar;
 
@@ -324,6 +344,7 @@ namespace Tempe {
 	public:
 		Oper_FunctionCall(const ExprLocation &loc, PExprNode name):VariadicNode(loc),name(name) {}
 		virtual Value calculate(IExprEnvironment &env) const;
+		PExprNode getFnNameCode() const { return name; }
 	protected:
 		virtual Value executeFn(IExecutableVar *fnvar, IExprEnvironment &env, ArrayRef<Value> args, Value context, bool functor) const;
 		virtual IExecutableVar *findExecutable(Value obj) const;
@@ -379,6 +400,14 @@ namespace Tempe {
 		virtual Value calculate(IExprEnvironment &env) const;
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const { throw; }
 
+
+	};
+
+	class Oper_Dereference : public NaryNode<1> {
+	public:
+		Oper_Dereference(const ExprLocation &loc) :NaryNode<1>(loc) {}
+		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
+		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val);
 
 	};
 }

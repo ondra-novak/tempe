@@ -46,10 +46,9 @@ namespace Tempe {
 		virtual natural getCycleTimeout() const = 0;
 		virtual IVtWriteIterator<char> *getTempeOutput()  = 0;
 		virtual bool checkIncludeProcessed(const FilePath &) const = 0;
-		virtual void markIncludeProcessed(const FilePath &)  = 0;
+		virtual void markIncludeProcessed(const FilePath &)  = 0;		
 
-		virtual void clear() = 0;
-
+		virtual void clear() = 0;		
 
 		virtual ~IExprEnvironment() {}
 	};
@@ -137,6 +136,20 @@ namespace Tempe {
 		PExprNode branch[n];
 	};
 
+	///Sets value to variable carried by reference
+	/** Variable carried by reference is stored to Value which remembers its
+	 original context and name. Reading that value returns its value, if exists.
+	 However, there is no other way, how to store new value to the variable. 
+
+	 This function stores the value to the variable carried as the reference.
+	 @param refVariable value constructed as reference to a variable. It can be received
+		through a function call
+     @param newValue new value. 
+	 @exception InterfaceNotImplementedException first argument is not refVariable
+	 @exception InvalidArgumentException first or second argument is nil
+	 */
+		
+	void setValueToRef(Value refVariable, Value newValue);
 }
 
 

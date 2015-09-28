@@ -141,6 +141,16 @@ using namespace LightSpeed;
 
 	};
 
+	class ArrayIsEmptyException: public Exception {
+	public:
+		LIGHTSPEED_EXCEPTIONFINAL;
+
+		ArrayIsEmptyException(const ProgramLocation &loc) :LightSpeed::Exception(loc) {}
+		~ArrayIsEmptyException() throw () {}
+		void message(ExceptionMsg &msg) const;
+
+	};
+
 	class BreakException: public Exception {
 	public:
 		BreakException(const ProgramLocation &loc, const ExprLocation &eloc)

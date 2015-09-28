@@ -1,4 +1,5 @@
 #pragma  once
+#include "lightspeed/base/namedEnum.h"
 
 namespace Tempe {
 
@@ -32,5 +33,11 @@ namespace Tempe {
 		emVoid
 
 	};
+
+	extern NamedEnum<EscapeMode> strEscapeMode;
+	extern NamedEnum<EscapeMode> strMimeCt;
+
+	class OutputConfig;
+	typedef RefCntPtr<OutputConfig> POutputConfig;
 
 }

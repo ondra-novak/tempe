@@ -63,8 +63,8 @@ namespace Tempe {
 	}
 
 	FunctionScope::FunctionScope(IExprEnvironment &env,
-		ConstStringT<AbstractFunctionVar::VarName_OutMode> argdef,
-		ArrayRef<Value> values) :LocalScope(env), arguments(argdef), values(values)
+		ConstStringT<AbstractFunctionVar::VarName_OutMode> arguments,
+		ArrayRef<Value> values) :LocalScope(env)
 
 	{
 		natural cnt = arguments.length();
@@ -83,16 +83,6 @@ namespace Tempe {
 			}
 		}
 
-	}
-	FunctionScope::~FunctionScope() {
-		natural cnt = arguments.length();
-		for (natural i = 0; i < cnt; i++) {
-			if (i >= values.length()) break;
-			if (arguments[i].second == FunctionVar::byReference || arguments[i].second == FunctionVar::optionalReference) {
-				if (varExists(arguments[i].first))
-					values(i) = getVar(arguments[i].first);
-			}
-		}
 	}
 
 
@@ -202,6 +192,8 @@ namespace Tempe {
 	}
 
 	bool BoundVar::operator ==(const INode& other) const {
+		const BoundVar *v = other.getIfcPtr<BoundVar>();
+		if (v) return v->context == context && v->varname == varname;
 		return resolve()->operator ==(other);
 	}
 
@@ -219,6 +211,11 @@ namespace Tempe {
 
 	lnatural BoundVar::getLongUInt() const {
 		return resolve()->getLongUInt();
+	}
+
+	bool BoundVar::empty() const
+	{
+		return true;
 	}
 
 	void BoundVar::setValue(Value newValue) {
@@ -241,11 +238,110 @@ namespace Tempe {
 
 	}
 
+
 	Value BoundVar::resolve() const {
 		JSON::INode *v = context->getVariable(varname);
-		if (v == 0) throw VariableNotExistException(THISLOCATION, varname);
+		if (v == 0 || v == this) throw VariableNotExistException(THISLOCATION, varname);
 		else return v;
 	}
 
+	VarName BoundVar::getVarname()
+	{
+		return varname;
+	}
+
+	JSON::INode * BoundVar::getVariable(ConstStrA v) const
+	{
+		return resolve()->getVariable(v);
+	}
+
+	LightSpeed::natural BoundVar::getEntryCount() const
+	{
+		return resolve()->getEntryCount();
+	}
+
+	JSON::INode * BoundVar::getEntry(natural idx) const
+	{
+		return resolve()->getEntry(idx);
+	
+	}
+
+	bool BoundVar::enumEntries(const JSON::IEntryEnum &fn) const
+	{
+		return resolve()->enumEntries(fn);
+	}
+
+	JSON::INode * BoundVar::add(JSON::PNode x)
+	{
+		resolve()->add(x); return this;
+	}
+
+	JSON::INode * BoundVar::add(ConstStrA a, JSON::PNode nd)
+	{
+		resolve()->add(a, nd); return this;
+	}
+
+	JSON::INode* BoundVar::erase(natural x)
+	{
+		resolve()->erase(x); return this;
+	}
+
+	JSON::INode* BoundVar::erase(ConstStrA x)
+	{
+		resolve()->erase(x); return this;
+	}
+
+	JSON::INode* BoundVar::enableMTAccess()
+	{
+		resolve()->enableMTAccess();
+		return AbstractFunctionVar::enableMTAccess();
+	}
+
+	LightSpeed::JSON::Iterator BoundVar::getFwIter() const
+	{
+		return resolve()->getFwIter();
+	}
+
+	LightSpeed::natural BoundVar::getUInt() const
+	{
+		return resolve()->getUInt();
+	}
+
+	JSON::INode & BoundVar::operator[](ConstStrA v) const
+	{
+		return resolve()->operator[](v);
+	}
+
+	JSON::INode & BoundVar::operator[](natural index) const
+	{
+		return resolve()->operator[](index);
+	}
+
+	bool BoundVar::isUtf8() const
+	{
+		return resolve()->isUtf8();
+	}
+
+	const void * BoundVar::proxyInterface(IInterfaceRequest &p) const
+	{
+		if (typeid(BoundVar) == p.getType()) return static_cast<const BoundVar *>(this);
+		else return IInterface::proxyInterface(p);
+	}
+
+	void * BoundVar::proxyInterface(IInterfaceRequest &p)
+	{
+		if (typeid(BoundVar) == p.getType()) return static_cast<BoundVar *>(this);
+		else return IInterface::proxyInterface(p);
+	}
+
+	Tempe::Value BoundVar::getConext()
+	{
+		return context;
+	}
+
+	Tempe::Value BoundVar::dereference()
+	{
+		return resolve();
+	}
 
 }

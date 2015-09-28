@@ -29,7 +29,6 @@ protected:
 	StringA genJumpName(natural id);
 	StringA genJumpOnFalseName(natural id);
 	natural allocLabel();
-
 	JSON::PFactory jsonf;
 };
 

@@ -150,6 +150,7 @@
     <ClCompile Include="src\tempe\functions.cpp" />
     <ClCompile Include="src\tempe\functionVar.cpp" />
     <ClCompile Include="src\tempe\linkValue.cpp" />
+    <ClCompile Include="src\tempe\objects.cpp" />
     <ClCompile Include="src\tempe\SourceReader.cpp" />
     <ClCompile Include="src\tempe\tempeOps.cpp" />
     <ClCompile Include="src\tempe\varTable.cpp" />

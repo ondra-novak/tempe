@@ -16,17 +16,33 @@
 #include "functions.h"
 #include "functionVar.h"
 #include "eval.h"
+#include "../../../lightspeed/src/lightspeed/base/exceptions/invalidParamException.h"
 
 namespace Tempe {
 
 
 template<typename T>
 class ScopeObject: public JSON::DynNode_t<T>, public ILinkTarget {
+	typedef JSON::DynNode_t<T> Super;
 public:
 
 	template<typename X>
 	ScopeObject(const X &x):JSON::DynNode_t<T>(x) {}
 	virtual SharedPtr<JSON::INode> getScopeWeakPointer() const {return weakPtr;}
+	///Faster access to a variable - dynamic cast is slow
+	virtual void *proxyInterface(typename Super::IInterfaceRequest &p) {
+		if (typeid(T) == p.getType()) return static_cast<T *>(this);
+		//to make faster reject that this is not BoundVar
+		else  if (typeid(BoundVar) == p.getType()) return 0;
+		else return IInterface::proxyInterface(p);
+	}
+	///Faster access to a variable - dynamic cast is slow
+	virtual const void *proxyInterface(typename Super::IInterfaceRequest &p) const {
+		if (typeid(T) == p.getType()) return static_cast<const T *>(this);
+		//to make faster reject that this is not BoundVar
+		else  if (typeid(BoundVar) == p.getType()) return 0;
+		else return IInterface::proxyInterface(p);
+	}
 
 	ScopeObject():weakPtr(this) {}
 	~ScopeObject() {
@@ -39,18 +55,17 @@ protected:
 
 class VarTable::Factory_t: public JSON::FactoryAlloc_t<ScopeObject> {
 public:
-
-	ClusterAlloc alloc;
+	
 	VarTable &owner;
 
-	Factory_t(VarTable &owner):FactoryAlloc_t<ScopeObject>(alloc),owner(owner) {}
+	Factory_t(VarTable &owner):FactoryAlloc_t<ScopeObject>(owner.alloc),owner(owner) {}
 	virtual IFactory *clone() {return new Factory_t(owner);}
 
 	virtual JSON::PNode newClass() {
-		return owner.regToGc(new(alloc) ScopeObject<Object>);
+		return owner.regToGc(new(owner.alloc) ScopeObject<Object>);
 	}
 	virtual JSON::PNode newArray() {
-		return owner.regToGc(new(alloc) ScopeObject<Array>);
+		return owner.regToGc(new(owner.alloc) ScopeObject<Array>);
 	}
 
 
@@ -63,10 +78,21 @@ JSON::PNode VarTable::regToGc(const JSON::PNode &obj) {
 }
 
 
-VarTable::VarTable():factory(new Factory_t(*this))
+VarTable::VarTable()
+			:alloc(StdAlloc::getInstance())
+			,factory(new Factory_t(*this))
 			,table(factory->newClass())
 			,staticTable(factory->newClass())
 			,cycleTm(5000) {
+	initFunctions();
+}
+
+VarTable::VarTable(IRuntimeAlloc &alloc) 
+	:alloc(alloc)
+	,factory(new Factory_t(*this))
+	, table(factory->newClass())
+	, staticTable(factory->newClass())
+	, cycleTm(5000) {
 	initFunctions();
 }
 
@@ -82,9 +108,23 @@ Value VarTable::getVar(VarNameRef name) const {
 	return nd;
 }
 
+
+static void setVariable(JSON::PNode table, VarNameRef name, const Value val)
+{
+	Value var = table->getVariable(name);
+	if (var) {
+		BoundVar *bv = var->getIfcPtr<BoundVar>();
+		if (bv) {
+			bv->setValue(val);
+			return;
+		}
+	}
+	table->replace(name, val);
+}
+
 void VarTable::setVar(VarNameRef name, const Value val) {
-	table->erase(name);
-	table->add(name,val);
+	setVariable(table, name, val);
+	return;
 }
 
 void VarTable::unset(VarNameRef name) {
@@ -110,15 +150,7 @@ void VarTable::clear() {
 	table.clear();
 	table = factory->newClass();
 	AbstractEnv::clear();
-	GCReg *x = gcreg.next;
-	AutoArray<std::pair<Value, GCReg *>, SmallAlloc<256> > regs;
-	while (x) {
-		regs.add(std::make_pair(Value(dynamic_cast<JSON::INode *>(x)),x));
-		x = x->next;
-	}
-	for (natural i = 0; i < regs.length(); i++) {
-		regs[i].second->clear();
-	}
+	gcreg.clearAll();
 
 }
 
@@ -133,14 +165,17 @@ VarTable::~VarTable() {
 }
 
 LocalScope::LocalScope(IExprEnvironment& parent)
-	:parent(parent), global(parent.getInternalGlobalEnv()),factory(&parent.getFactory()), table(factory->newClass()), cycleTm(naturalNull)
+	:parent(parent)
+	 ,internalGlobal(parent.getInternalGlobalEnv())
+	,global(parent.getGlobalEnv())
+	,factory(&parent.getFactory()), table(factory->newClass()), cycleTm(naturalNull)
  {
 }
 
 Value LocalScope::getVar(VarNameRef name) const {
 	if (name == "_current") return table;
 	if (name == "_super") return parent.getVar("_current");
-	if (name == "_global") return getGlobalEnv().getVar("_global");
+	if (name == "_global") return getGlobalEnv().getVar("_current");
 	JSON::INode *nd = table->getVariable(name);
 	if (nd == 0) return parent.getVar(name);
 	else return nd;
@@ -148,8 +183,7 @@ Value LocalScope::getVar(VarNameRef name) const {
 }
 
 void LocalScope::setVar(VarNameRef name, const Value val) {
-	table->erase(name);
-	table->add(name,val);
+	setVariable(table, name, val);
 }
 
 void LocalScope::unset(VarNameRef name) {
@@ -188,7 +222,7 @@ void LocalScope::setCycleTimeout(natural tmInMs)
 }
 
 IExprEnvironment& LocalScope::getInternalGlobalEnv() {
-	return parent.getInternalGlobalEnv();
+	return internalGlobal;
 
 }
 
@@ -208,7 +242,11 @@ LightSpeed::natural LocalScope::getCycleTimeout() const
 }
 
 LocalScope::LocalScope(IExprEnvironment& parent, JSON::PNode import)
-:parent(parent),global(parent.getInternalGlobalEnv()),factory(&parent.getFactory()),table(import)
+	:parent(parent)
+	, internalGlobal(parent.getInternalGlobalEnv())
+	, global(parent.getGlobalEnv())
+	,factory(&parent.getFactory())
+	, table(import)
 {
 }
 
@@ -253,8 +291,8 @@ void VarTable::initFunctions() {
 	setVar("exec", Value(createFnCall(alloc,&fnExec)));
 	setVar("scan", Value(createFnCall(alloc,&fnScan)));
 	setVar("chr", Value(createFnCall(alloc,&fnChr)));
-	setVar("array", Value(createFnCall(alloc,&fnArray)));
 	setVar("eval", Value(createFnCall(alloc, &fnEval)));
+	setVar("rand", Value(createFnCall(alloc, &fnRand)));
 }
 
 
@@ -337,5 +375,12 @@ const IExprEnvironment* FakeGlobalScope::getParentScope() const {
 	return 0;
 }
 
+
+void setValueToRef(Value refVariable, Value newValue) {
+	if (refVariable == nil) throw InvalidParamException(THISLOCATION, 1, "Argument is nil");
+	if (newValue == nil) throw InvalidParamException(THISLOCATION, 2, "Argument is nil");
+	BoundVar &bv = refVariable->getIfc<BoundVar>();
+	bv.setValue(newValue);
+}
 }
 

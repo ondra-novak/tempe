@@ -22,6 +22,7 @@
 #include <lightspeed/utils/json/jsonfast.tcc>
 
 #include "functionVar.h"
+#include "../../../lightspeed/src/lightspeed/base/streams/secureRandom.h"
 using LightSpeed::countof;
 using std::wcschr;
 
@@ -31,10 +32,10 @@ Value convertAndDoOper(IExprEnvironment &env, const Value &a, const Value &b, Va
 	if (a->getType() == JSON::ndNull) return a;
 	if (b->getType() == JSON::ndNull) return b;
 	if (a->getType() == JSON::ndString) {
-		return fn(env,a,env.getFactory().newValue(b->getStringUtf8()));
+		return fn(env,a,env.getFactory().newValue(b->getString()));
 	} else if (a->getType() == JSON::ndFloat) {
 		if (b->getType() == JSON::ndString) {
-			return fn(env,env.getFactory().newValue(a->getStringUtf8()),b);
+			return fn(env,env.getFactory().newValue(a->getString()),b);
 		} else if (b->getType() == JSON::ndInt) {
 			return fn(env,a,env.getFactory().newValue(b->getFloat()));
 		} else if (b->getType() == JSON::ndBool) {
@@ -42,7 +43,7 @@ Value convertAndDoOper(IExprEnvironment &env, const Value &a, const Value &b, Va
 		}
 	} else if (a->getType() == JSON::ndInt) {
 		if (b->getType() == JSON::ndString) {
-			return fn(env,env.getFactory().newValue(a->getStringUtf8()),b);
+			return fn(env,env.getFactory().newValue(a->getString()),b);
 		} else if (b->getType() == JSON::ndFloat) {
 			return fn(env,env.getFactory().newValue(a->getFloat()),b);
 		} else if (b->getType() == JSON::ndBool) {
@@ -51,7 +52,7 @@ Value convertAndDoOper(IExprEnvironment &env, const Value &a, const Value &b, Va
 
 	} else if (a->getType() == JSON::ndBool) {
 		if (b->getType() == JSON::ndString) {
-			return fn(env,env.getFactory().newValue(a->getStringUtf8()),b);
+			return fn(env,env.getFactory().newValue(a->getString()),b);
 		} else if (b->getType() == JSON::ndFloat) {
 			return fn(env,env.getFactory().newValue(a->getFloat()),b);
 		} else if (b->getType() == JSON::ndInt) {
@@ -70,7 +71,7 @@ Value operEqual(IExprEnvironment& env,const Value &a,const Value &b) {
 	if (a->getType() != b->getType())
 		return convertAndDoOper(env,a,b,&operGreatEqual);
 	switch (a->getType()) {
-		case JSON::ndString: return env.getFactory().newValue(a->getStringUtf8() == b->getStringUtf8());
+		case JSON::ndString: return env.getFactory().newValue(a->getString() == b->getString());
 		case JSON::ndInt: return env.getFactory().newValue(a->getInt() == b->getInt());
 		case JSON::ndFloat: return env.getFactory().newValue(a->getFloat() == b->getFloat());
 		case JSON::ndBool: return env.getFactory().newValue(a->getBool() == b->getBool());
@@ -83,7 +84,7 @@ Value operGreater(IExprEnvironment& env,const Value &a,const Value &b) {
 	if (a->getType() != b->getType())
 		return convertAndDoOper(env,a,b,&operGreater);
 	switch (a->getType()) {
-		case JSON::ndString: return env.getFactory().newValue(a->getStringUtf8() > b->getStringUtf8());
+		case JSON::ndString: return env.getFactory().newValue(a->getString() > b->getString());
 		case JSON::ndInt: return env.getFactory().newValue(a->getInt() > b->getInt());
 		case JSON::ndFloat: return env.getFactory().newValue(a->getFloat() > b->getFloat());
 		case JSON::ndBool: return env.getFactory().newValue(a->getBool() == true && b->getBool() == false);
@@ -100,7 +101,7 @@ Value operGreatEqual(IExprEnvironment& env,const Value &a,const Value &b) {
 	if (a->getType() != b->getType())
 		return convertAndDoOper(env,a,b,&operGreatEqual);
 	switch (a->getType()) {
-		case JSON::ndString: return env.getFactory().newValue(a->getStringUtf8() >= b->getStringUtf8());
+		case JSON::ndString: return env.getFactory().newValue(a->getString() >= b->getString());
 		case JSON::ndInt: return env.getFactory().newValue(a->getInt() >= b->getInt());
 		case JSON::ndFloat: return env.getFactory().newValue(a->getFloat() >= b->getFloat());
 		case JSON::ndBool: return env.getFactory().newValue(a->getBool() == true);
@@ -121,7 +122,7 @@ Value operPlus(IExprEnvironment& env, const Value& a, const Value& b) {
 	if (a->getType() != b->getType())
 		return convertAndDoOper(env,a,b,&operPlus);
 	switch (a->getType()) {
-		case JSON::ndString: return env.getFactory().newValue(StringA(a->getStringUtf8() + b->getStringUtf8()));
+		case JSON::ndString: return env.getFactory().newValue(String(a->getString() + b->getString()));
 		case JSON::ndInt: return env.getFactory().newValue(a->getInt() + b->getInt());
 		case JSON::ndFloat: return env.getFactory().newValue(a->getFloat() + b->getFloat());
 		case JSON::ndArray:
@@ -200,7 +201,7 @@ Value operIntegerDiv(IExprEnvironment& env, const Value& a, const Value& b) {
 }
 
 Value operStringAppend(IExprEnvironment& env, const Value& a, const Value& b) {
-	return env.getFactory().newValue(StringA(a->getStringUtf8() + b->getStringUtf8()));
+	return env.getFactory().newValue(String(a->getString() + b->getString()));
 }
 
 class WChrI {
@@ -243,8 +244,8 @@ bool containWordT(ConstStringT<X> stra, ConstStringT<X> strb) {
 }
 
 Value fnContain(IExprEnvironment& env, const Value& a, const Value& b) {
-	ConstStrA stra=a->getStringUtf8();
-	ConstStrA strb=b->getStringUtf8();
+	ConstStrW stra=a->getString();
+	ConstStrW strb=b->getString();
 	ConstStringT<WChrI> istra(reinterpret_cast<const WChrI*>(stra.data()),stra.length());
 	ConstStringT<WChrI> istrb(reinterpret_cast<const WChrI*>(strb.data()),strb.length());
 	bool found = istra.find(istrb) != naturalNull;
@@ -252,8 +253,8 @@ Value fnContain(IExprEnvironment& env, const Value& a, const Value& b) {
 }
 
 Value fnContainWord(IExprEnvironment& env, const Value& a, const Value& b) {
-	ConstStrA stra=a->getStringUtf8();
-	ConstStrA strb=b->getStringUtf8();
+	ConstStrW stra=a->getString();
+	ConstStrW strb=b->getString();
 	ConstStringT<WChrI> istra(reinterpret_cast<const WChrI*>(stra.data()),stra.length());
 	ConstStringT<WChrI> istrb(reinterpret_cast<const WChrI*>(strb.data()),strb.length());
 	return env.getFactory().newValue(containWordT(istra,istrb));
@@ -261,16 +262,16 @@ Value fnContainWord(IExprEnvironment& env, const Value& a, const Value& b) {
 }
 
 Value fnContainExact(IExprEnvironment& env, const Value& a, const Value& b) {
-	ConstStrA stra=a->getStringUtf8();
-	ConstStrA strb=b->getStringUtf8();
+	ConstStrW stra=a->getString();
+	ConstStrW strb=b->getString();
 	bool found = stra.find(strb) != naturalNull;
 	return env.getFactory().newValue(found);
 }
 
 Value fnContainWordExact(IExprEnvironment& env, const Value& a,
 		const Value& b) {
-	ConstStrA stra=a->getStringUtf8();
-	ConstStrA strb=b->getStringUtf8();
+	ConstStrW stra=a->getString();
+	ConstStrW strb=b->getString();
 	return env.getFactory().newValue(containWordT(stra,strb));
 }
 
@@ -282,7 +283,7 @@ Value fnHead(IExprEnvironment& env, const Value& a, const Value& b) {
 		for (natural i = 0; i < mx; i++) r->add(a[i]);
 		return r;
 	} else
-		return env.getFactory().newValue(StringA(a->getStringUtf8().head(b->getInt())));
+		return env.getFactory().newValue(String(a->getString().head(b->getInt())));
 }
 
 Value fnTail(IExprEnvironment& env, const Value& a, const Value& b) {
@@ -294,7 +295,7 @@ Value fnTail(IExprEnvironment& env, const Value& a, const Value& b) {
 		for (natural i = mx; i > 0; i--) r->add(a[l-i]);
 		return r;
 	} else
-	   return env.getFactory().newValue(StringA(a->getStringUtf8().tail(b->getInt())));
+	   return env.getFactory().newValue(String(a->getString().tail(b->getInt())));
 }
 
 Value fnOffset(IExprEnvironment& env, const Value& a, const Value& b) {
@@ -306,7 +307,7 @@ Value fnOffset(IExprEnvironment& env, const Value& a, const Value& b) {
 		for (natural i = mx; i < l; i++) r->add(a[i]);
 		return r;
 	} else
-		return env.getFactory().newValue(StringA(a->getStringUtf8().offset(b->getInt())));
+		return env.getFactory().newValue(String(a->getString().offset(b->getInt())));
 }
 
 Value fnRoffset(IExprEnvironment& env, const Value& a, const Value& b) {
@@ -320,20 +321,20 @@ Value fnRoffset(IExprEnvironment& env, const Value& a, const Value& b) {
 		return r;
 	}
 	else
-		return env.getFactory().newValue(StringA(a->getStringUtf8().crop(0,b->getInt())));
+		return env.getFactory().newValue(String(a->getString().crop(0,b->getInt())));
 }
 
-typedef std::pair<ConstStrA,ConstStrA> DoSplitRes;
-static DoSplitRes doSplit(const StringA &a, const StringA &b, int count) {
-	if (count == 0) return DoSplitRes(a,ConstStrA());
+typedef std::pair<ConstStrW,ConstStrW> DoSplitRes;
+static DoSplitRes doSplit(const String &a, const String &b, int count) {
+	if (count == 0) return DoSplitRes(a,ConstStrW());
 	if (count > 0) {
 		natural q = a.find(b);
-		if (q == naturalNull) return DoSplitRes(a,ConstStrA());
-		ConstStrA l = a.head(q);
-		ConstStrA r = a.offset(q+b.length());
+		if (q == naturalNull) return DoSplitRes(a,ConstStrW());
+		ConstStrW l = a.head(q);
+		ConstStrW r = a.offset(q+b.length());
 		while (count > 1) {
 			q = r.find(b);
-			if (q == naturalNull) return DoSplitRes(a,ConstStrA());
+			if (q == naturalNull) return DoSplitRes(a,ConstStrW());
 			q += l.length() + b.length();
 			l = a.head(q);
 			r = a.offset(q+b.length());
@@ -342,12 +343,12 @@ static DoSplitRes doSplit(const StringA &a, const StringA &b, int count) {
 		return DoSplitRes(l,r);
 	} else {
 		natural q = a.findLast(b);
-		if (q == naturalNull) return DoSplitRes(a,ConstStrA());
-		ConstStrA l = a.head(q);
-		ConstStrA r = a.offset(q+b.length());
+		if (q == naturalNull) return DoSplitRes(a,ConstStrW());
+		ConstStrW l = a.head(q);
+		ConstStrW r = a.offset(q+b.length());
 		while (count < -1) {
 			q = l.findLast(b);
-			if (q == naturalNull) return DoSplitRes(a,ConstStrA());
+			if (q == naturalNull) return DoSplitRes(a,ConstStrW());
 			l = a.head(q);
 			r = a.offset(q+b.length());
 			count++;
@@ -358,21 +359,21 @@ static DoSplitRes doSplit(const StringA &a, const StringA &b, int count) {
 }
 
 Value fnSplitAt(IExprEnvironment& env, const Value& a, const Value& b,const Value& c) {
-	StringA what = a->getStringUtf8();
-	StringA where = b->getStringUtf8();
+	String what = a->getString();
+	String where = b->getString();
 	int count = c->getInt();
 	return env.getFactory().newValue(doSplit(what,where,count).first);
 }
 
 Value fnRsplitAt(IExprEnvironment& env, const Value& a, const Value& b, const Value& c) {
-	StringA what = a->getStringUtf8();
-	StringA where = b->getStringUtf8();
+	String what = a->getString();
+	String where = b->getString();
 	int count = c->getInt();
 	return env.getFactory().newValue(doSplit(what,where,count).second);
 }
 
 Value fnToString(IExprEnvironment& env, const Value& a) {
-	return env.getFactory().newValue(a->getStringUtf8());
+	return env.getFactory().newValue(a->getString());
 }
 
 Value fnToInt(IExprEnvironment& env, const Value& a) {
@@ -462,31 +463,57 @@ Value fnTypeOf(IExprEnvironment& env, const Value& a) {
 }
 
 Value fnCharAt(IExprEnvironment& env, const Value& a, const Value& b) {
-	StringA k = a->getStringUtf8();
+	String k = a->getString();
 	natural idx = (natural)(b->getInt());
 	if (idx >= k.length())
-		return env.getFactory().newValue(StringA());
+		return env.getFactory().newValue(String());
 	else
-		return env.getFactory().newValue(ConstStrA(k[idx]));
+		return env.getFactory().newValue(ConstStrW(k[idx]));
 }
 Value fnReplace(IExprEnvironment& env, const Value& a, const Value& b,
 		const Value& c, const Value& d) {
-	StringA src = a->getStringUtf8();
-	StringA newVal = b->getStringUtf8();
+	String src = a->getString();
+	String newVal = b->getString();
 	natural idx = (natural)(c->getInt());
 	natural count = (natural)(d->getInt());
-	return env.getFactory().newValue(StringA(src.head(idx) + newVal + src.offset(idx+count)));
+	return env.getFactory().newValue(String(src.head(idx) + newVal + src.offset(idx+count)));
 }
 
+Value fnArrIndex(IExprEnvironment &env, const Value &arr, const Value &index) {
+	if (arr->isArray()) {
+		natural idx = index->getUInt();
+		natural len = arr->length();
+		if (idx < len) {
+			return arr[idx];
+		}
+		else {
+			throw RangeException(THISLOCATION, idx, len);
+		}
+	}
+	else {
+		String x = arr->getString();
+		natural idx = index->getUInt();
+		natural len = x.length();
+		if (idx < len) {
+			return env.getFactory().newValue(ConstStrW(x.mid(idx, 1)));
+		}
+		else {
+			throw RangeException(THISLOCATION, idx, len );
+		}
+	}
+}
+
+
+
 Value fnCode(IExprEnvironment& env, const Value& a) {
-	StringA k = a->getStringUtf8();
+	String k = a->getString();
 	if (k.empty()) return env.getFactory().newNullNode();
 	else return env.getFactory().newValue((integer)k[0]);
 }
 
 Value fnLength(IExprEnvironment& env, const Value& a) {
 	if (a->isArray()) return env.getFactory().newValue(a->length());
-	StringA k = a->getStringUtf8();
+	String k = a->getString();
 	return env.getFactory().newValue(k.length());
 }
 
@@ -504,21 +531,21 @@ Value fnDebug(IExprEnvironment& env , ArrayRef<Value> values) {
 }
 
 Value fnPrint(IExprEnvironment& env, ArrayRef<Value> values) {
-	AutoArray<char> buff;
+	AutoArray<wchar_t> buff;
 	for (natural i = 0; i < values.length(); i++) {
-		buff.append(values[i]->getStringUtf8());
+		buff.append(values[i]->getString());
 	}
 	ConsoleW con;
-	con.print(L"%1\n") << ConstStrA(buff);
+	con.print(L"%1\n") << ConstStrW(buff);
 	return env.getFactory().newValue(true);
 }
 
 
 Value fnExec(IExprEnvironment& env, const Value& path, ArrayRef<Value> values) {
-	Process pgm(path->getStringUtf8());
+	Process pgm(path->getString());
 	for (natural i = 0; i < values.length(); i++) {
 		Value arg = values[i];
-		pgm.arg(arg->getStringUtf8());
+		pgm.arg(arg->getString());
 	}
 	integer r = pgm.exec();
 	return env.getFactory().newValue(r);
@@ -527,15 +554,41 @@ Value fnExec(IExprEnvironment& env, const Value& path, ArrayRef<Value> values) {
 
 
 
+Tempe::Value fnRand(IExprEnvironment &env, const Value &a)
+{
+	class RandomStream : public JSON::Null_t, public DynObject {
+	public:
+		SecureRandom &getRandomStream() { return r; }
+	protected:
+		SecureRandom r;
+	};
+
+	static ConstStrA name = "$__randomGeneratorInstance__$";
+
+	JSON::IFactory &f = env.getFactory();
+	IExprEnvironment &global = env.getInternalGlobalEnv();
+	if (!global.varExists(name)) {
+		global.setVar(name, new(*f.getAllocator()) RandomStream);
+	}
+	Value randomStream = global.getVar(name);
+	SecureRandom &srand = randomStream->getIfc<RandomStream>().getRandomStream();
+	Value res = f.array();
+	integer count = a->getUInt();
+	for (integer i = 0; i < count; i++) {
+		res->add(f.newValue((natural)srand.getNext()));
+	}
+	return res;
+}
+
 Value fnScan(IExprEnvironment& env, const Value&  vsubj, const Value& vpattern) {
 
-	class Parser: public TextParser<char> {
+	class Parser: public TextParser<wchar_t> {
 	public:
 		natural count() const {return fragments.length();}
 	};
 
-	StringA subj = vsubj->getStringUtf8();
-	StringA pattern = vpattern->getStringUtf8();
+	String subj = vsubj->getString();
+	String pattern = vpattern->getString();
 	Parser parser;
 	if (parser(pattern,subj)) {
 
@@ -551,17 +604,11 @@ Value fnScan(IExprEnvironment& env, const Value&  vsubj, const Value& vpattern) 
 }
 
 Value fnChr(IExprEnvironment& env,ArrayRef<Value> values) {
-	AutoArray<char, SmallAlloc<32> > buffer;
+	AutoArray<wchar_t, SmallAlloc<32> > buffer;
 	for (natural i = 0; i < values.length(); i++) {
-		buffer.add((char)(values[i]->getUInt()));
+		buffer.add((wchar_t)(values[i]->getUInt()));
 	}
-	return env.getFactory().newValue(ConstStrA(buffer));
-}
-
-Value fnArray(IExprEnvironment& env, ArrayRef<Value> values) {
-	Value out = env.getFactory().array();
-	for (natural i = 0; i < values.length(); i++) out->add(values[i]);
-	return out;
+	return env.getFactory().newValue(ConstStrW(buffer));
 }
 
 

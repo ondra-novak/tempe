@@ -65,9 +65,11 @@ Value fnLength(IExprEnvironment &env,const Value &a);
 Value fnDebug(IExprEnvironment &env,ArrayRef<Value> values);
 Value fnPrint(IExprEnvironment &env,ArrayRef<Value> values);
 Value fnExec(IExprEnvironment &env,const Value &a, ArrayRef<Value> values);
+Value fnRand(IExprEnvironment &env, const Value &a);
 Value fnScan(IExprEnvironment &env,const Value &a, const Value &b);
 Value fnChr(IExprEnvironment &env,ArrayRef<Value> values);
-Value fnArray(IExprEnvironment &env,ArrayRef<Value> values);
+Value fnArrIndex(IExprEnvironment &env, const Value &arr, const Value &index);
+
 
 
 class AbstractFunctionVar;
