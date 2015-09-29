@@ -114,10 +114,44 @@ import
 ---------------
 inline
 ---------------
+
+Klíčové slovo rozbalí tělo funkce přímo do kódu. Příkaz očekává výraz, který vede na funkci. Je možné použít proměnnou, ale s tou výsadou, že proměnná musí obsahovat funkci a musí být deklarovaná uvnitř příkazu **const**
+
+```
+const test=function () 
+               a=a+1 
+          end; 
+a=10; 
+inline test; 
+inline test
+```
+Výsledkem operace bude hodnota 12. Pomocí nástroje dumpcode (součástí tempe-console) lze ověřit, že obsah funkce "test" se v místech, kde je uvedeno klíčové slovo `inline` přímo vložil. Argumenty funkce se ignorují a také se při vkládání kódu nevytváří scope. Ve výsledku je tak inlinováná funkce rychleji zpracována, ale s tím, že musí být napsaná na míru danému místu, kde se používá. Proměnné, které ve funkci použijeme se vytváří v aktuálním scope.
+
+Rekurze není povolena a defacto není možná. Není možné zavolat inline na funkci, která ještě nebyla vytvořena. Je samozřejmě možné zavolat funkci jménem, ale pak jde o běžné voláné a nikoliv o operaci `inline`
+
+
+
+
+
 isnull
 ---------------
+
+Testuje výraz na pravé straně, zda je výsledkem null. Pokud ano, vrací true, jinak false. 
+
 loop
 ---------------
+
+Příkaz vyhodnocuje výraz tak dlouho, dokud není výsledkem false. Příkaz očekává jednoduchý výraz, pokud je potřeba opakovat více příkazů, lze použít závorky, nebo volat funkci a testovat její návratovou hodnotu.
+
+```
+loop opakuj_dokud_neni_konec();
+
+loop (
+   a=rand(1)[0];
+   print(a);
+a>0);
+```
+
 new
 ---------------
 not
@@ -130,8 +164,42 @@ or
 ---------------
 repeat
 ---------------
+
+součást bloku repeat-until
+
+repeat `<blok>` until `<vyraz>`
+
+Příkaz opakuje blok tak dlouho, doku vyraz vraci false. Jakmile výraz vrátí true, opakování se zastaví.
+
 scope
 ---------------
+
+Blokový příkaz scope-end. Založí nový scope a provede blok mezi scope a end. Proměnné vytvořené nebo přepsané uvnitř scope jsou po opuštění scope smazány, případně nahrazeny původní hodnotou
+
+```
+a="foo"
+scope
+   print(a); # vypíše foo
+   a="bar";
+   print(a); # vypiše bar
+end
+print(a); # vypíše foo
+```
+
+Příkaz neizoluje úplně. Je třeba si dát pozor zejména na objekty, do kterých lze přes tečkový operátor přistupovat a měnite je. Tečkový operátor opouští vliv příkazu scope. Stejnou vlastnosti disponují pole
+
+```
+a=[10,20]
+scope
+  print(a); # vypíše [10,20]
+  a[]=30;
+  print(a); # vypíše [10,20,30]
+end
+print(a); # vypíše [10,20,30]
+```
+
+Důvodem je, že operace a[]= není založení nové proměnné, ale upráva obsahu existující proměnné.
+
 template
 ---------------
 then
