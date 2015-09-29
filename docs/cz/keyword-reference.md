@@ -88,30 +88,171 @@ Příkaz **const** má ještě jednu výhodu. Jeho **const-scope** je platný po
 
 defined
 ---------------
+
+`defined <var>` vrací true, pokud je proměnná definovaná a false pokud není. 
+
 do
 ---------------
+
+Součást některých konstrukcí jako while-do-end odděluje podmínku od bloku příkazů
+
 echo
 ---------------
+
+Příkaz `echo <expr>` zapíše obsah proměnné na výstup za použití aktuálního nastaveni příkazu `template`. Je to ekvivaletni zápisu `{$${<expr>}$}`
+
 else
 ---------------
+
+Součást konstrukce if-then-else
+
 elseif
 ---------------
+
+Kombinace příkazu else a if. Je výhodnější použít tento příkaz namísto samostatných příkazů, protože se nevytváří vnořený blok
+
+```
+if <cond> then
+  <blok>
+elseif <cond> then
+ <blok>
+else
+ <blok>
+end
+```
+
+Bez elseif by výše zmíněný příkaz byl méně přehledný
+
+```
+if <cond> then
+  <blok>
+else if <cond> then
+       <blok>
+     else
+       <blok> 
+   end
+end
+```
+
 end
 ---------------
-false
----------------
+
+Příkaz `end` ukončuje bloky, například blok if-then-end, nebo scope-end, foreach-end, with-end atd. Jeho použití bývá nepovinné v případě, kdy ukončení bloku je zřejmé, například pokud se spolu s blokem ukončuje blok jinak označený. Typicky blok uvnitř závorek ( ) nebo uvnitř šablony ${ } nemusí být ukončen příkazem `end` pokud by za ním následovalo ukončení vnějšího bloku. Totéž platí na konci skriptu. Naproti tomu:
+
+`{$ ${ foreach <var> <blok> } $}` - end je nepovinný, protože následuje ukončení vynechávky ${}
+
+`scope foreach <var> <blok> end` - v tomto případě ovšem `end` ukončuje foreach, nikoliv scope. 
+
+V případě nejistoty doporučuje se `end` uvádět
+
+
 firstDefined
 ---------------
+
+Příkaz `firstDefined <var1>,<var2>,<var3>,...` vrací hodnotu první definovanou proměnné. Lze místo proměnné použít libovolný výraz, ten je ovšem definovaný vždy, může být použit jako poslední argument
+
 foreach 
 ---------------
+
+Příkaz `foreach <expr> <blok> end` vyhodnotí `<expr>` a pokud je výsledkem pole nebo objekt, provede `<blok>` pro všechny jeho prvky.
+
+V bloku je vytvořeno implicitní **scope**, které obsahuje vlastní objekt (jako příkaz **with**) a dále pak definuje tyto proměnné
+  * `this` - obsahuje referenci na aktuální prvek
+  * `index` - obsahuje index prvku (pole) nebo jeho jméno (objekt)
+  * `count` - obsahuje počet prvků (pole)
+
+Jakákoliv proměnná vytvořená ve scope zůstává zachována přes všechny cykly (**scope** je vytvořen před vlastním cyklem, ne pro každý cyklus), lze tedy toho využít například pro nějaké mezisoučty a podobně. Doporučuje se ovšem proměnnou v nadřazeném scope inicializovat.
+
 function
 ---------------
+
+Deklaruje funkci. Funkce jsou v Tempe považovány za hodnoty, takže je možné je ukládat do proměnných. Vyvolání funkce se pak děje přes operátor (). Do závorek se pak uvádí argumenty funkce. Překladač rozlišuje mezi závorkami uvnitř výrazu a voláním. Přes závorkami představující volání musí být totiž výraz, jehož výsledkem je hodnota typu funkce
+
+ * `a+b+(c)` - obyčejné závorky
+ * `a+b(c)` - volání funkce b() s parametrem c
+ * `a.b(c)` - volání funkce b() s parametrem c v objektu a. V tomto případě dochází před vykonáním funkce k nastavení proměnné this na a, a zápis tak představuje volání metody b() v objektu a.
+
+Funkce se deklaruje zápisem `function( <argumenty> ) <blok>`. Zpravida funkci přiřazujeme proměnné přes operátor přiřazení: `faktorial=function(n) ...` - vznikne funkce faktorial s parametrem n.
+
+Funkci jako hodnotu můžeme kopírovat do jiných proměnných a dochází k jejímu sdílení. Pozor na to, že funkce si nepamatuje scope, ve kterém vznikla, takže v ní nelze používat proměnné z nadřazeného scope.
+
+Argumenty funkce se deklarují jako výčet proměnných. Proměnné nemusí existovat, jsou vytvořeny nově uvnitř scope funkce a lze je měnit aniž by došlo k ovlivnění proměnných vložených jako argumenty (výjma argumentu volaných odkazem, viz dále)
+
+Syntaxe zápisu argumentů je však bohatší:
+ * běžná proměnná, třeba `a` - změna uvnitř funkce se vně neprojeví
+ * odkaz na proměnou `&a` - přenáši se odkaz, je možné použít i doposud nedefinovanou proměnnou. Zápis do proměnné uvnitř funkce ovlivní proměnnou vně
+ * klíčové slovo `optional a` - zahajuje blok volitelných argumentů. Ten platí až na konec deklarace argumentů
+ * variabilní argumenty `a ...` - proměnná a obdrží pole obsahující zbývající argumenty
+  
+```
+vypis=function(a ...) 
+      foreach a print(this) end # vypis vsechny argumenty
+end
+```
+
+
 getvarname
 ---------------
+
+Vrací jméno proměnné jako řetězec pokud proměnná byla do funkce předána odkazem 
+
+```
+vypis=function(&x)
+     print(getvarname x)
+end
+
+vypis(ahoj);  # vypise "ahoj"
+```
+
+Příkaz jednoduše extrahuje jméno proměnné z odkazu. Pokud je zadána proměnná která není odkazem, vysledkem je jmeno té proměnné. Samotná proměnná nemusí existovat.
+
+`a=10; print(getvarname a)` - vypíše "a"
+
+Použití může by pro deklaraci vlastních klíčových slov nebo enumů
+
+```
+clovek(muz, 35, 186)
+clovek(zena, 24, 167)
+```
+
+
+
 if
 ---------------
+
+Zahájení konstrukce if-then-else-endif. Vyhodnotí podmínku za if, a podle výsledku provede patřičnou větev
+
+
+```
+if <cond> then <blok> end
+```
+pokud je `<cond>` true, provede `<blok>` jinak nic. Příkaz vrací výsledek provedeného bloku, nebo false. Tímto způsobem pracuje i operátor **and** (dokonce se tak interně překládá)
+
+```
+if <cond> then 
+    <blok1> 
+else 
+    <blok2>
+end
+```
+pokud je `<cond>` true, provede `<blok1>` jinak provede `<blok2>`. Příkaz vrací výsledek provedeného bloku
+
+```
+if <cond> then 
+    <blok1> 
+elseif <cond> then
+    <blok2>
+else 
+    <blok3>
+end
+```
+řetězení příkazu if dalšími podmínkami ifelse. Vrací pak výsledek provedeného bloku
+
+
 import
 ---------------
+
+
 inline
 ---------------
 
