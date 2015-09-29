@@ -252,6 +252,28 @@ end
 import
 ---------------
 
+Importuje do kódu obsah jiného skriptu. 
+
+`import "jmeno scriptu"` - namísto jména může být jakýkoliv **konstantní výraz** (viz příkaz **const**), jehož výsledkem je řetězec.
+
+**Pozor:** Příkaz **nefunguje jako** běžně známé **include**. Skript se nevkládá jako text, ale před vložením se nejprve přeloží, případně se již vkládá přeložen, pakliže je jeho přeložená verze k dispozici v code-cache. Navíc příkaz se v rámci aktuálního scope provede vždy jednou a jakékoliv další importy stejného skriptu se ignorují. Lze ale příkaz použít uvnitř scope a po opuštění scope se jeho použití zapomene
+
+```
+import "script";  # import se provede
+import "script";  # import se neprovede (příkaz se přeskočí)
+```
+
+```
+scope
+   import "script"; # import se provede
+end
+
+scope
+   import "script"; # import se provede
+end
+```
+
+
 
 inline
 ---------------
@@ -295,12 +317,71 @@ a>0);
 
 new
 ---------------
+
+Vytvoří nový objekt.  
+
+`new Obj(<args>)` - Parametrem operátoru musí být funkce nebo třída (viz dále). V případě, že je ke konstrukci použita funkce, pak tato funkce je považována za konstruktor objektu. Uvnitř funkce je k dispozici proměnná **this**, která odkazuje na prázdný objekt. Výsledkem operace `new` je pak tento objekt.
+
+```
+Complex=function(re,im)
+  this.re = re;
+  this.im = im;
+end
+
+n = new Complex(1,2)
+```
+
+výsledkem je `n={"re":1, "im":2, "class": function(re,im) }`. Kromě položek re a im je k dispozici i proměnná "class", která odkazuje na třídu kterou v tomto případě reprezentuje právě ona funkce. Lze dokonce provést test
+
+```
+n.class == Complex
+Result is: true
+```
+
+Kromě funkce lze jako argument použít i třídu. Třídou se rozumí objekt, který se použije jako vzor pro nový objekt a navíc má tyto proměnné:
+  * `init` - funkce, která se zavola po zkonstruování objektu. Může mít argumenty, pak se ty argumenty zadávají do závorek za jméno třídy při volání `new`. Pokud není tato proměnná definována, příkaz `new` použije výchozí konstruktor.
+  * `super` - odkaz na předka, což může být opět třída.
+
+Pokud má třída předka, je nutné v konstruktoru `init()` zavolat jejího předka vyvoláním funkce `super()`. Pokud však třída, která definuje předka nemá konstruktor `init()`, zajistí si operátor `new` volání sám, ale předek musí mít konstruktor bez argumentů.
+
+```
+Foo = {
+     init = function(n)
+        this.n = n;
+     end,
+     x:"hello",
+     y:"world",
+     };
+Bar= {
+     super: Foo,  #deklarace předka
+     init = function(n,m) 
+          super(n);   #volání konstruktoru předka
+          this.m = m;
+     end,
+     y:"poeple",     #proměnná přepíše proměnnou předka v nové instanci
+     z:"here!"       
+     }
+
+
+n  = new Bar(1,2)
+Result is: {"x":"hello","y":"poeple","z":"here!","n":1,"m":2, "class": Bar}
+```
+
 not
 ---------------
+
+negace boolovského výrazu
+
 null
 ---------------
+
+vrací hodnotu null
+
 optional
 ---------------
+
+zahajuje nepoviné argumeny u funkce, viz `function`
+
 or
 ---------------
 repeat
@@ -345,18 +426,37 @@ template
 ---------------
 then
 ---------------
+
+součást příkazu if-then-else-end
+
 throw
 ---------------
 true
 ---------------
+
+vrací hodnotu true.
+
 try
 ---------------
 unset
 ---------------
+
+zruší deklaraci proměnné.
+
 until
 ---------------
 varname
 ---------------
+
+
+Umožňuje deklarovat proměnnou pomocí výrazu. 
+```
+varname "x" = 10; #přiřadí do proměnné x hodnotu 10
+
+x="test";
+varname x = "hi"; #přiřadí do proměnné test hodnotu "hi"
+```
+
 while
 ---------------
 with
