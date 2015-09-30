@@ -26,12 +26,39 @@ namespace Tempe {
 
 	}
 
-	
-	static ConstStrA getFnName(void *addr) {
 
-#define internalFnName(op) if (addr == &op) return #op;
+#define internalFnName(op) if (addr == &op) return "BUILDIN "#op;
+
+	static ConstStrA getFnName(Value (* addr)(IExprEnvironment&, const Value&) ) {
+
 		internalFnName(operUnarMinus);
 		internalFnName(operUnarNot);
+		internalFnName(fnToString);
+		internalFnName(fnToInt);
+		internalFnName(fnToReal);
+		internalFnName(fnRound);
+		internalFnName(fnFloor);
+		internalFnName(fnCeil);
+		internalFnName(fnExp);
+		internalFnName(fnSqrt);
+		internalFnName(fnSin);
+		internalFnName(fnCos);
+		internalFnName(fnTan);
+		internalFnName(fnASin);
+		internalFnName(fnACos);
+		internalFnName(fnATan);
+		internalFnName(fnLog);
+		internalFnName(fnLog10);
+		internalFnName(fnTypeOf);
+		internalFnName(fnRand);
+		internalFnName(fnCode);
+		internalFnName(fnLength);
+		return "<unknown>";
+
+	}
+
+	static ConstStrA getFnName(Value (* addr)(IExprEnvironment&, const Value&, const Value&) ) {
+
 		internalFnName(operEqual);
 		internalFnName(operGreater);
 		internalFnName(operLess);
@@ -53,41 +80,30 @@ namespace Tempe {
 		internalFnName(fnTail);
 		internalFnName(fnOffset);
 		internalFnName(fnRoffset);
-		internalFnName(fnSplitAt);
-		internalFnName(fnRsplitAt);
-		internalFnName(fnToString);
-		internalFnName(fnToInt);
-		internalFnName(fnToReal);
-		internalFnName(fnRound);
-		internalFnName(fnFloor);
-		internalFnName(fnCeil);
-		internalFnName(fnExp);
 		internalFnName(fnPow);
-		internalFnName(fnSqrt);
-		internalFnName(fnSin);
-		internalFnName(fnCos);
-		internalFnName(fnTan);
-		internalFnName(fnASin);
-		internalFnName(fnACos);
-		internalFnName(fnATan);
 		internalFnName(fnATan2);
-		internalFnName(fnLog);
-		internalFnName(fnLog10);
-		internalFnName(fnTypeOf);
 		internalFnName(fnCharAt);
-		internalFnName(fnRand);
-		internalFnName(fnReplace);
-		internalFnName(fnCode);
-		internalFnName(fnLength);
-		internalFnName(fnDebug);
-		internalFnName(fnPrint);
-		internalFnName(fnExec);
 		internalFnName(fnScan);
-		internalFnName(fnChr);
 		internalFnName(fnArrIndex);
 		return "<unknown>";
 
 	}
+
+	static ConstStrA getFnName(Value (* addr)(IExprEnvironment&, const Value&, const Value&, const Value&) ) {
+
+		internalFnName(fnSplitAt);
+		internalFnName(fnRsplitAt);
+		return "<unknown>";
+
+	}
+
+	static ConstStrA getFnName(Value (* addr)(IExprEnvironment&, const Value&, const Value&, const Value&, const Value&) ) {
+
+		internalFnName(fnReplace);
+		return "<unknown>";
+
+	}
+
 
 	static NamedEnumDef<Oper_WithDo::Isolation> isolationStrDef[] = {
 		{ Oper_WithDo::isoDefault, "SCOPE_ENTER_WITH_OBJ" },
