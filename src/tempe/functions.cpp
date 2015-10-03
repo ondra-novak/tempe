@@ -553,15 +553,16 @@ Value fnExec(IExprEnvironment& env, const Value& path, ArrayRef<Value> values) {
 }
 
 
+class RandomStream : public JSON::Null_t, public DynObject {
+public:
+	SecureRandom &getRandomStream() { return r; }
+protected:
+	SecureRandom r;
+};
+
 
 Tempe::Value fnRand(IExprEnvironment &env, const Value &a)
 {
-	class RandomStream : public JSON::Null_t, public DynObject {
-	public:
-		SecureRandom &getRandomStream() { return r; }
-	protected:
-		SecureRandom r;
-	};
 
 	static ConstStrA name = "$__randomGeneratorInstance__$";
 

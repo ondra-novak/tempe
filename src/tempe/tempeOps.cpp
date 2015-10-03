@@ -1,11 +1,14 @@
-#include "tempeOps.h"
+#include <math.h>
+
+
 #include "lightspeed/utils/json/jsonfast.tcc"
 #include "lightspeed/base/containers/convertString.h"
 #include "lightspeed/utils/base64.tcc"
 #include "lightspeed/utils/urlencode.h"
-#include "basicOps.h"
 #include "lightspeed/base/namedEnum.tcc"
 #include "lightspeed/utils/json/jsonfast.h"
+#include "basicOps.h"
+#include "tempeOps.h"
 
 namespace Tempe {
 
@@ -84,10 +87,10 @@ namespace Tempe {
 		natural len = strnum.length();
 
 		if (param1 < 0) {
-			if (cfg->negPrefix) buffer.write(cfg->negPrefix);
+			buffer.blockWrite(cfg->negPrefix);
 		}
 		else if (param1 > 0){
-			if (cfg->posPrefix) buffer.write(cfg->posPrefix);
+			buffer.blockWrite(cfg->posPrefix);
 		}
 		natural gr = cfg->groupsize ? cfg->groupsize : naturalNull;
 
@@ -95,14 +98,14 @@ namespace Tempe {
 		natural flen = len + spcnt;
 		if (flen < cfg->minwidth) {
 			for (natural i = cfg->minwidth; i > flen; i--) {
-				buffer.write(cfg->fillchar);
+				buffer.blockWrite(cfg->fillchar);
 			}
 		}
 		for (natural i = len; i > 0;) {
 			i--;
 			natural spcnt2 = i / gr;
 			if (spcnt2 < spcnt) {
-				buffer.write(cfg->delimiter);
+				buffer.blockWrite(cfg->delimiter);
 				spcnt = spcnt2;
 			}
 			buffer.write(strnum[len - i - 1]);
@@ -114,10 +117,10 @@ namespace Tempe {
 	{
 		
 		if (param1 < 0) {
-			if (cfg->negSuffix) buffer.write(cfg->negSuffix);
+			buffer.blockWrite(cfg->negSuffix);
 		}
 		else if (param1 > 0){
-			if (cfg->posSuffix) buffer.write(cfg->posSuffix);
+			buffer.blockWrite(cfg->posSuffix);
 		}
 
 	}
@@ -146,7 +149,7 @@ namespace Tempe {
 				while (strNum[len2 - 1] == '0') len2--;
 			}
 			if (strNum[len2 - 1] != '.') {
-				buffer.write(cfg->decimalmark);
+				buffer.blockWrite(cfg->decimalmark,true);
 				natural pos = len + 1;
 				while (pos < len2) {
 					buffer.write(strNum[pos]);
@@ -263,28 +266,23 @@ namespace Tempe {
 		, minwidth(0)
 		, groupsize(0)
 		, precision(2)
-		, fillchar(' ')
-		, delimiter(' ')
-		, decimalmark('.')
+		, fillchar(ConstStrW(' '))
+		, delimiter(ConstStrW(' '))
+		, decimalmark(ConstStrW('.'))
 		, fixed(false)
+		, posPrefix(ConstStrW())
+		, posSuffix(ConstStrW())
+		, negPrefix(ConstStrW('-'))
+		, negSuffix(ConstStrW())
 		, strTrue(JSON::strTrue)
 		, strFalse(JSON::strFalse)
 		, strNull(JSON::strNull)
-		, posPrefix(0)
-		, posSuffix(0)
-		, negPrefix('-')
-		, negSuffix(0)
 	{
 
 	}
 
 
-	static wchar_t getChar(const JSON::KeyValue & kv)
-	{
-		ConstStrW x = kv->getString();
-		if (x.empty()) return 0;
-		else return x[0];
-	}
+
 
 	void OutputConfig::load(JSON::PNode cfg)
 	{
@@ -292,13 +290,13 @@ namespace Tempe {
 			const JSON::KeyValue &kv = iter.getNext();
 			switch (strConfigFields[kv.getStringKey()]) {
 				case ocfContent: escMode = strEscapeMode[kv->getStringUtf8()]; break;
-				case ocfDecimalMark: decimalmark = getChar(kv); break;
-				case ocfDelimiter: delimiter = getChar(kv); break;
-				case ocfFillChar: fillchar = getChar(kv); break;
-				case ocfPosPrefix: posPrefix = getChar(kv); break;
-				case ocfNegPrefix: negPrefix = getChar(kv); break;
-				case ocfPosSuffix: posSuffix = getChar(kv); break;
-				case ocfNegSuffix: negSuffix = getChar(kv); break;
+				case ocfDecimalMark: decimalmark = kv->getString(); break;
+				case ocfDelimiter: delimiter = kv->getString(); break;
+				case ocfFillChar: fillchar = kv->getString(); break;
+				case ocfPosPrefix: posPrefix = kv->getString(); break;
+				case ocfNegPrefix: negPrefix = kv->getString(); break;
+				case ocfPosSuffix: posSuffix = kv->getString(); break;
+				case ocfNegSuffix: negSuffix = kv->getString(); break;
 				case ocfFixed: fixed = kv->getBool(); break;
 				case ocfGroupSize: groupsize = Bin::natural16(kv->getUInt()); break;
 				case ocfMinWidth: minwidth = Bin::natural16(kv->getUInt()); break;

@@ -88,66 +88,375 @@ Příkaz **const** má ještě jednu výhodu. Jeho **const-scope** je platný po
 
 defined
 ---------------
+
+`defined <var>` vrací true, pokud je proměnná definovaná a false pokud není. 
+
 do
 ---------------
+
+Součást některých konstrukcí jako while-do-end odděluje podmínku od bloku příkazů
+
 echo
 ---------------
+
+Příkaz `echo <expr>` zapíše obsah proměnné na výstup za použití aktuálního nastaveni příkazu `template`. Je to ekvivaletni zápisu `{$${<expr>}$}`
+
 else
 ---------------
+
+Součást konstrukce if-then-else
+
 elseif
 ---------------
+
+Kombinace příkazu else a if. Je výhodnější použít tento příkaz namísto samostatných příkazů, protože se nevytváří vnořený blok
+
+```
+if <cond> then
+  <blok>
+elseif <cond> then
+ <blok>
+else
+ <blok>
+end
+```
+
+Bez elseif by výše zmíněný příkaz byl méně přehledný
+
+```
+if <cond> then
+  <blok>
+else if <cond> then
+       <blok>
+     else
+       <blok> 
+   end
+end
+```
+
 end
 ---------------
-false
----------------
+
+Příkaz `end` ukončuje bloky, například blok if-then-end, nebo scope-end, foreach-end, with-end atd. Jeho použití bývá nepovinné v případě, kdy ukončení bloku je zřejmé, například pokud se spolu s blokem ukončuje blok jinak označený. Typicky blok uvnitř závorek ( ) nebo uvnitř šablony ${ } nemusí být ukončen příkazem `end` pokud by za ním následovalo ukončení vnějšího bloku. Totéž platí na konci skriptu. Naproti tomu:
+
+`{$ ${ foreach <var> <blok> } $}` - end je nepovinný, protože následuje ukončení vynechávky ${}
+
+`scope foreach <var> <blok> end` - v tomto případě ovšem `end` ukončuje foreach, nikoliv scope. 
+
+V případě nejistoty doporučuje se `end` uvádět
+
+
 firstDefined
 ---------------
+
+Příkaz `firstDefined <var1>,<var2>,<var3>,...` vrací hodnotu první definovanou proměnné. Lze místo proměnné použít libovolný výraz, ten je ovšem definovaný vždy, může být použit jako poslední argument
+
 foreach 
 ---------------
+
+Příkaz `foreach <expr> <blok> end` vyhodnotí `<expr>` a pokud je výsledkem pole nebo objekt, provede `<blok>` pro všechny jeho prvky.
+
+V bloku je vytvořeno implicitní **scope**, které obsahuje vlastní objekt (jako příkaz **with**) a dále pak definuje tyto proměnné
+  * `this` - obsahuje referenci na aktuální prvek
+  * `index` - obsahuje index prvku (pole) nebo jeho jméno (objekt)
+  * `count` - obsahuje počet prvků (pole)
+
+Jakákoliv proměnná vytvořená ve scope zůstává zachována přes všechny cykly (**scope** je vytvořen před vlastním cyklem, ne pro každý cyklus), lze tedy toho využít například pro nějaké mezisoučty a podobně. Doporučuje se ovšem proměnnou v nadřazeném scope inicializovat.
+
 function
 ---------------
+
+Deklaruje funkci. Funkce jsou v Tempe považovány za hodnoty, takže je možné je ukládat do proměnných. Vyvolání funkce se pak děje přes operátor (). Do závorek se pak uvádí argumenty funkce. Překladač rozlišuje mezi závorkami uvnitř výrazu a voláním. Přes závorkami představující volání musí být totiž výraz, jehož výsledkem je hodnota typu funkce
+
+ * `a+b+(c)` - obyčejné závorky
+ * `a+b(c)` - volání funkce b() s parametrem c
+ * `a.b(c)` - volání funkce b() s parametrem c v objektu a. V tomto případě dochází před vykonáním funkce k nastavení proměnné this na a, a zápis tak představuje volání metody b() v objektu a.
+
+Funkce se deklaruje zápisem `function( <argumenty> ) <blok>`. Zpravida funkci přiřazujeme proměnné přes operátor přiřazení: `faktorial=function(n) ...` - vznikne funkce faktorial s parametrem n.
+
+Funkci jako hodnotu můžeme kopírovat do jiných proměnných a dochází k jejímu sdílení. Pozor na to, že funkce si nepamatuje scope, ve kterém vznikla, takže v ní nelze používat proměnné z nadřazeného scope.
+
+Argumenty funkce se deklarují jako výčet proměnných. Proměnné nemusí existovat, jsou vytvořeny nově uvnitř scope funkce a lze je měnit aniž by došlo k ovlivnění proměnných vložených jako argumenty (výjma argumentu volaných odkazem, viz dále)
+
+Syntaxe zápisu argumentů je však bohatší:
+ * běžná proměnná, třeba `a` - změna uvnitř funkce se vně neprojeví
+ * odkaz na proměnou `&a` - přenáši se odkaz, je možné použít i doposud nedefinovanou proměnnou. Zápis do proměnné uvnitř funkce ovlivní proměnnou vně
+ * klíčové slovo `optional a` - zahajuje blok volitelných argumentů. Ten platí až na konec deklarace argumentů
+ * variabilní argumenty `a ...` - proměnná a obdrží pole obsahující zbývající argumenty
+  
+```
+vypis=function(a ...) 
+      foreach a print(this) end # vypis vsechny argumenty
+end
+```
+
+
 getvarname
 ---------------
+
+Vrací jméno proměnné jako řetězec pokud proměnná byla do funkce předána odkazem 
+
+```
+vypis=function(&x)
+     print(getvarname x)
+end
+
+vypis(ahoj);  # vypise "ahoj"
+```
+
+Příkaz jednoduše extrahuje jméno proměnné z odkazu. Pokud je zadána proměnná která není odkazem, vysledkem je jmeno té proměnné. Samotná proměnná nemusí existovat.
+
+`a=10; print(getvarname a)` - vypíše "a"
+
+Použití může by pro deklaraci vlastních klíčových slov nebo enumů
+
+```
+clovek(muz, 35, 186)
+clovek(zena, 24, 167)
+```
+
+
+
 if
 ---------------
+
+Zahájení konstrukce if-then-else-endif. Vyhodnotí podmínku za if, a podle výsledku provede patřičnou větev
+
+
+```
+if <cond> then <blok> end
+```
+pokud je `<cond>` true, provede `<blok>` jinak nic. Příkaz vrací výsledek provedeného bloku, nebo false. Tímto způsobem pracuje i operátor **and** (dokonce se tak interně překládá)
+
+```
+if <cond> then 
+    <blok1> 
+else 
+    <blok2>
+end
+```
+pokud je `<cond>` true, provede `<blok1>` jinak provede `<blok2>`. Příkaz vrací výsledek provedeného bloku
+
+```
+if <cond> then 
+    <blok1> 
+elseif <cond> then
+    <blok2>
+else 
+    <blok3>
+end
+```
+řetězení příkazu if dalšími podmínkami ifelse. Vrací pak výsledek provedeného bloku
+
+
 import
 ---------------
+
+Importuje do kódu obsah jiného skriptu. 
+
+`import "jmeno scriptu"` - namísto jména může být jakýkoliv **konstantní výraz** (viz příkaz **const**), jehož výsledkem je řetězec.
+
+**Pozor:** Příkaz **nefunguje jako** běžně známé **include**. Skript se nevkládá jako text, ale před vložením se nejprve přeloží, případně se již vkládá přeložen, pakliže je jeho přeložená verze k dispozici v code-cache. Navíc příkaz se v rámci aktuálního scope provede vždy jednou a jakékoliv další importy stejného skriptu se ignorují. Lze ale příkaz použít uvnitř scope a po opuštění scope se jeho použití zapomene
+
+```
+import "script";  # import se provede
+import "script";  # import se neprovede (příkaz se přeskočí)
+```
+
+```
+scope
+   import "script"; # import se provede
+end
+
+scope
+   import "script"; # import se provede
+end
+```
+
+
+
 inline
 ---------------
+
+Klíčové slovo rozbalí tělo funkce přímo do kódu. Příkaz očekává výraz, který vede na funkci. Je možné použít proměnnou, ale s tou výsadou, že proměnná musí obsahovat funkci a musí být deklarovaná uvnitř příkazu **const**
+
+```
+const test=function () 
+               a=a+1 
+          end; 
+a=10; 
+inline test; 
+inline test
+```
+Výsledkem operace bude hodnota 12. Pomocí nástroje dumpcode (součástí tempe-console) lze ověřit, že obsah funkce "test" se v místech, kde je uvedeno klíčové slovo `inline` přímo vložil. Argumenty funkce se ignorují a také se při vkládání kódu nevytváří scope. Ve výsledku je tak inlinováná funkce rychleji zpracována, ale s tím, že musí být napsaná na míru danému místu, kde se používá. Proměnné, které ve funkci použijeme se vytváří v aktuálním scope.
+
+Rekurze není povolena a defacto není možná. Není možné zavolat inline na funkci, která ještě nebyla vytvořena. Je samozřejmě možné zavolat funkci jménem, ale pak jde o běžné voláné a nikoliv o operaci `inline`
+
+
+
+
+
 isnull
 ---------------
+
+Testuje výraz na pravé straně, zda je výsledkem null. Pokud ano, vrací true, jinak false. 
+
 loop
 ---------------
+
+Příkaz vyhodnocuje výraz tak dlouho, dokud není výsledkem false. Příkaz očekává jednoduchý výraz, pokud je potřeba opakovat více příkazů, lze použít závorky, nebo volat funkci a testovat její návratovou hodnotu.
+
+```
+loop opakuj_dokud_neni_konec();
+
+loop (
+   a=rand(1)[0];
+   print(a);
+a>0);
+```
+
 new
 ---------------
+
+Vytvoří nový objekt.  
+
+`new Obj(<args>)` - Parametrem operátoru musí být funkce nebo třída (viz dále). V případě, že je ke konstrukci použita funkce, pak tato funkce je považována za konstruktor objektu. Uvnitř funkce je k dispozici proměnná **this**, která odkazuje na prázdný objekt. Výsledkem operace `new` je pak tento objekt.
+
+```
+Complex=function(re,im)
+  this.re = re;
+  this.im = im;
+end
+
+n = new Complex(1,2)
+```
+
+výsledkem je `n={"re":1, "im":2, "class": function(re,im) }`. Kromě položek re a im je k dispozici i proměnná "class", která odkazuje na třídu kterou v tomto případě reprezentuje právě ona funkce. Lze dokonce provést test
+
+```
+n.class == Complex
+Result is: true
+```
+
+Kromě funkce lze jako argument použít i třídu. Třídou se rozumí objekt, který se použije jako vzor pro nový objekt a navíc má tyto proměnné:
+  * `init` - funkce, která se zavola po zkonstruování objektu. Může mít argumenty, pak se ty argumenty zadávají do závorek za jméno třídy při volání `new`. Pokud není tato proměnná definována, příkaz `new` použije výchozí konstruktor.
+  * `super` - odkaz na předka, což může být opět třída.
+
+Pokud má třída předka, je nutné v konstruktoru `init()` zavolat jejího předka vyvoláním funkce `super()`. Pokud však třída, která definuje předka nemá konstruktor `init()`, zajistí si operátor `new` volání sám, ale předek musí mít konstruktor bez argumentů.
+
+```
+Foo = {
+     init = function(n)
+        this.n = n;
+     end,
+     x:"hello",
+     y:"world",
+     };
+Bar= {
+     super: Foo,  #deklarace předka
+     init = function(n,m) 
+          super(n);   #volání konstruktoru předka
+          this.m = m;
+     end,
+     y:"poeple",     #proměnná přepíše proměnnou předka v nové instanci
+     z:"here!"       
+     }
+
+
+n  = new Bar(1,2)
+Result is: {"x":"hello","y":"poeple","z":"here!","n":1,"m":2, "class": Bar}
+```
+
 not
 ---------------
+
+negace boolovského výrazu
+
 null
 ---------------
+
+vrací hodnotu null
+
 optional
 ---------------
+
+zahajuje nepoviné argumeny u funkce, viz `function`
+
 or
 ---------------
 repeat
 ---------------
+
+součást bloku repeat-until
+
+repeat `<blok>` until `<vyraz>`
+
+Příkaz opakuje blok tak dlouho, doku vyraz vraci false. Jakmile výraz vrátí true, opakování se zastaví.
+
 scope
 ---------------
+
+Blokový příkaz scope-end. Založí nový scope a provede blok mezi scope a end. Proměnné vytvořené nebo přepsané uvnitř scope jsou po opuštění scope smazány, případně nahrazeny původní hodnotou
+
+```
+a="foo"
+scope
+   print(a); # vypíše foo
+   a="bar";
+   print(a); # vypiše bar
+end
+print(a); # vypíše foo
+```
+
+Příkaz neizoluje úplně. Je třeba si dát pozor zejména na objekty, do kterých lze přes tečkový operátor přistupovat a měnite je. Tečkový operátor opouští vliv příkazu scope. Stejnou vlastnosti disponují pole
+
+```
+a=[10,20]
+scope
+  print(a); # vypíše [10,20]
+  a[]=30;
+  print(a); # vypíše [10,20,30]
+end
+print(a); # vypíše [10,20,30]
+```
+
+Důvodem je, že operace a[]= není založení nové proměnné, ale upráva obsahu existující proměnné.
+
 template
 ---------------
 then
 ---------------
+
+součást příkazu if-then-else-end
+
 throw
 ---------------
 true
 ---------------
+
+vrací hodnotu true.
+
 try
 ---------------
 unset
 ---------------
+
+zruší deklaraci proměnné.
+
 until
 ---------------
 varname
 ---------------
+
+
+Umožňuje deklarovat proměnnou pomocí výrazu. 
+```
+varname "x" = 10; #přiřadí do proměnné x hodnotu 10
+
+x="test";
+varname x = "hi"; #přiřadí do proměnné test hodnotu "hi"
+```
+
 while
 ---------------
 with
