@@ -1138,40 +1138,61 @@ PExprNode Compiler::compileUNAR(TokenReader& reader)
 
 	Tempe::PExprNode Compiler::compileTemplateText(ExprLocation loc, TokenReader& reader)
 	{
+	
+		Value dict;
+		if (curConstScope->varExists("dictionary")) {
+			dict = curConstScope->getVar("dictionary");
+		}
 		buffer.clear();
 		SourceReader &srcrd = reader;
 		while (srcrd.hasItems()) {
 			char c = srcrd.getNext();
 			if (c == '$') {
 				if (!srcrd.hasItems()) break;
-				c = srcrd.getNext();
-				if (c == '$') buffer.add(c);
+				c = srcrd.peek();
+				if (c == '$') buffer.add(srcrd.getNext());
 				else if (c == '}') {
-					return new(alloc) OutputText(loc, buffer);
+					srcrd.skip();
+					return new(alloc)OutputText(loc, buffer);
 				}
-				else {
+				else if (c == '{') {
+					srcrd.skip();
 					loc = reader.getLocation();
-					if (c == '{') {
-						PExprNode curTemplate = new(alloc)OutputText(loc, buffer);
-						PExprNode expr = compileTemplateSubExpr(loc, reader);
-						if (reader.getNext() == TokenReader::symbCBrace) {
-							reader.accept();
-							PExprNode subcmd = (new(alloc) Oper_Comma(loc))
-								->setBranch(0, curTemplate)
-								->setBranch(1, expr);
-							loc = reader.getLocation();
-							PExprNode nxtTemplate = compileTemplateText(loc, reader);
-							PExprNode subcmd2 = (new(alloc) Oper_Comma(loc))
-								->setBranch(0, subcmd)
-								->setBranch(1, nxtTemplate);
-							return subcmd2;
-						}
-						else {
-							throwExpectedError(loc, TokenReader::symbCBrace);
-						}
+					PExprNode curTemplate = new(alloc)OutputText(loc, buffer);
+					PExprNode expr = compileTemplateSubExpr(loc, reader);
+					if (reader.getNext() == TokenReader::symbCBrace) {
+						reader.accept();
+						PExprNode subcmd = (new(alloc)Oper_Comma(loc))
+							->setBranch(0, curTemplate)
+							->setBranch(1, expr);
+						loc = reader.getLocation();
+						PExprNode nxtTemplate = compileTemplateText(loc, reader);
+						PExprNode subcmd2 = (new(alloc)Oper_Comma(loc))
+							->setBranch(0, subcmd)
+							->setBranch(1, nxtTemplate);
+						return subcmd2;
 					}
 					else {
 						throwExpectedError(loc, TokenReader::symbCBrace);
+					}
+				}
+				else {
+					TokenReader::Symbol s = reader.getNext();
+					ConstStrA var;
+					if (s == TokenReader::sVarname) {
+						var = reader.varname;
+					}
+					else {
+						var = kwList[s];
+					}
+					reader.accept();
+					
+					JSON::INode *nd;
+					if (dict != nil && (nd = dict->getPtr(var)) != 0) {
+						buffer.append(nd->getStringUtf8());					
+					}
+					else {
+						buffer.append(var);
 					}
 				}
 			}

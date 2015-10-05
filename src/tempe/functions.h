@@ -69,6 +69,12 @@ Value fnRand(IExprEnvironment &env, const Value &a);
 Value fnScan(IExprEnvironment &env,const Value &a, const Value &b);
 Value fnChr(IExprEnvironment &env,ArrayRef<Value> values);
 Value fnArrIndex(IExprEnvironment &env, const Value &arr, const Value &index);
+Value fnUnixtime(IExprEnvironment &env, const Value &a);
+Value fnLsTime(IExprEnvironment &env, const Value &a);
+Value fnDbTime(IExprEnvironment &env, const Value &a);
+Value fnIsoTime(IExprEnvironment &env, const Value &a);
+Value fnDate(IExprEnvironment &env, const Value &a, const Value &b, const Value &c);
+Value fnTime(IExprEnvironment &env, const Value &a, const Value &b, const Value &c);
 
 
 

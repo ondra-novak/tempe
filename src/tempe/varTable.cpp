@@ -293,6 +293,12 @@ void VarTable::initFunctions() {
 	setVar("chr", Value(createFnCall(alloc,&fnChr)));
 	setVar("eval", Value(createFnCall(alloc, &fnEval)));
 	setVar("rand", Value(createFnCall(alloc, &fnRand)));
+	setVar("unixtime", Value(createFnCall(alloc, &fnUnixtime)));
+	setVar("lstime", Value(createFnCall(alloc, &fnLsTime)));
+	setVar("dbtime", Value(createFnCall(alloc, &fnDbTime)));
+	setVar("isotime", Value(createFnCall(alloc, &fnIsoTime)));
+	setVar("date", Value(createFnCall(alloc, &fnDate)));
+	setVar("time", Value(createFnCall(alloc, &fnTime)));
 }
 
 

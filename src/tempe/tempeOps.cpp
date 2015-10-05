@@ -10,6 +10,7 @@
 #include "basicOps.h"
 #include "tempeOps.h"
 
+
 namespace Tempe {
 
 	OutputText::OutputText(const ExprLocation &loc, StringA text) :AbstractNode(loc), text(text)
@@ -25,6 +26,16 @@ namespace Tempe {
 		}
 		return JSON::getNullNode();
 	}
+
+	class DateTimeVal : public JSON::FloatField_t, public DynObject {
+	public:
+		DateTimeVal(double x) :JSON::FloatField_t(x) {}
+		static bool IsDate(const Value &v) {
+			return (typeid(*v.get()) == typeid(DateTimeVal));
+		}
+
+	};
+
 
 	OutputResult::OutputResult(const ExprLocation &loc, POutputConfig cfg, EscapeMode escModeOverride)
 		: NaryNode<1>(loc)
@@ -82,7 +93,7 @@ namespace Tempe {
 	}
 
 	template<typename T, typename Q>
-	static void formatToBufferIntegerPart(const T &param1, POutputConfig cfg, IWriteIterator<wchar_t,Q> &buffer, ConstStrA strnum)
+	static void formatToBufferIntegerPart(const T &param1, POutputConfig cfg, IWriteIterator<char,Q> &buffer, ConstStrA strnum)
 	{
 		natural len = strnum.length();
 
@@ -113,7 +124,7 @@ namespace Tempe {
 	}
 
 	template<typename T, typename Q>
-	static void formatToBufferSuffixes(const T &param1, POutputConfig cfg, IWriteIterator<wchar_t, Q> &buffer)
+	static void formatToBufferSuffixes(const T &param1, POutputConfig cfg, IWriteIterator<char, Q> &buffer)
 	{
 		
 		if (param1 < 0) {
@@ -129,11 +140,11 @@ namespace Tempe {
 
 		ToString<linteger, char> strNum(linteger(abs(param1)));
 
-		AutoArrayStream<wchar_t, SmallAlloc<256> > buffer;
+		AutoArrayStream<char, SmallAlloc<256> > buffer;
 		formatToBufferIntegerPart(param1, cfg, buffer, strNum);
 		formatToBufferSuffixes(param1, cfg, buffer);
 
-		return String::getUtf8(buffer.getArray());
+		return buffer.getArray();
 	}
 
 	static StringA formatFloatNumber(POutputConfig cfg, double param1){
@@ -141,7 +152,7 @@ namespace Tempe {
 		ToString<double> strNum(abs(param1), cfg->precision);
 		natural len = strNum.findLast('.');
 		if (len == naturalNull) len = strNum.length();
-		AutoArrayStream<wchar_t, SmallAlloc<256> > buffer;
+		AutoArrayStream<char, SmallAlloc<256> > buffer;
 		formatToBufferIntegerPart(param1, cfg, buffer, strNum.head(len));
 		if (cfg->precision) {
 			natural len2 = strNum.length();
@@ -158,9 +169,16 @@ namespace Tempe {
 			}
 		}
 		formatToBufferSuffixes(param1, cfg, buffer);
-		return String::getUtf8(buffer.getArray());
+		return buffer.getArray();
 	}
 
+
+	StringA formatDate(const OutputConfig *cfg, double val)
+	{
+		CArray<char, 1024> buffer;
+		TimeStamp tmsp(val);
+		return tmsp.formatTime(buffer, cfg->dateFormat);
+	}
 
 
 	Value OutputResult::calculate(IExprEnvironment &env, const Value *subResults) const
@@ -177,7 +195,11 @@ namespace Tempe {
 				else {
 					ConstStrA val;
 					StringA tmp;
-					if (v->isIntNum()) {
+					if (DateTimeVal::IsDate(v)) {
+						tmp = formatDate(cfg, v->getLongUInt());
+						val = tmp;
+
+					} else if (v->isIntNum()) {
 						tmp = formatIntNumber(cfg,v->getLongInt());
 						val = tmp;
 					}
@@ -266,14 +288,14 @@ namespace Tempe {
 		, minwidth(0)
 		, groupsize(0)
 		, precision(2)
-		, fillchar(ConstStrW(' '))
-		, delimiter(ConstStrW(' '))
-		, decimalmark(ConstStrW('.'))
+		, fillchar(ConstStrA(' '))
+		, delimiter(ConstStrA(' '))
+		, decimalmark(ConstStrA('.'))
 		, fixed(false)
-		, posPrefix(ConstStrW())
-		, posSuffix(ConstStrW())
-		, negPrefix(ConstStrW('-'))
-		, negSuffix(ConstStrW())
+		, posPrefix(ConstStrA())
+		, posSuffix(ConstStrA())
+		, negPrefix(ConstStrA('-'))
+		, negSuffix(ConstStrA())
 		, strTrue(JSON::strTrue)
 		, strFalse(JSON::strFalse)
 		, strNull(JSON::strNull)
@@ -290,13 +312,13 @@ namespace Tempe {
 			const JSON::KeyValue &kv = iter.getNext();
 			switch (strConfigFields[kv.getStringKey()]) {
 				case ocfContent: escMode = strEscapeMode[kv->getStringUtf8()]; break;
-				case ocfDecimalMark: decimalmark = kv->getString(); break;
-				case ocfDelimiter: delimiter = kv->getString(); break;
-				case ocfFillChar: fillchar = kv->getString(); break;
-				case ocfPosPrefix: posPrefix = kv->getString(); break;
-				case ocfNegPrefix: negPrefix = kv->getString(); break;
-				case ocfPosSuffix: posSuffix = kv->getString(); break;
-				case ocfNegSuffix: negSuffix = kv->getString(); break;
+				case ocfDecimalMark: decimalmark = kv->getStringUtf8(); break;
+				case ocfDelimiter: delimiter = kv->getStringUtf8(); break;
+				case ocfFillChar: fillchar = kv->getStringUtf8(); break;
+				case ocfPosPrefix: posPrefix = kv->getStringUtf8(); break;
+				case ocfNegPrefix: negPrefix = kv->getStringUtf8(); break;
+				case ocfPosSuffix: posSuffix = kv->getStringUtf8(); break;
+				case ocfNegSuffix: negSuffix = kv->getStringUtf8(); break;
 				case ocfFixed: fixed = kv->getBool(); break;
 				case ocfGroupSize: groupsize = Bin::natural16(kv->getUInt()); break;
 				case ocfMinWidth: minwidth = Bin::natural16(kv->getUInt()); break;
@@ -311,6 +333,50 @@ namespace Tempe {
 	void OutputConfig::setContent(ConstStrA content)
 	{
 		escMode = strEscapeMode[content];
+	}
+
+
+	Tempe::Value fnUnixtime(IExprEnvironment &env, const Value &a)
+	{
+		return new(*env.getFactory().getAllocator()) DateTimeVal(a->getFloat() / (double)TimeStamp::daySecs);
+	}
+
+	Tempe::Value fnLsTime(IExprEnvironment &env, const Value &a)
+	{
+		return new(*env.getFactory().getAllocator()) DateTimeVal(a->getFloat());
+
+	}
+
+	Tempe::Value fnDbTime(IExprEnvironment &env, const Value &a)
+	{
+		ConstStrA tm = a->getStringUtf8();
+		TimeStamp tms = TimeStamp::fromDBDate(tm);
+		return new(*env.getFactory().getAllocator()) DateTimeVal(tms.getFloat());
+
+	}
+
+	Tempe::Value fnIsoTime(IExprEnvironment &env, const Value &a)
+	{
+		ConstStrA tm = a->getStringUtf8();
+		TimeStamp tms = TimeStamp::fromISO8601Time(tm);
+		return new(*env.getFactory().getAllocator()) DateTimeVal(tms.getFloat());
+
+	}
+
+	Tempe::Value fnDate(IExprEnvironment &env, const Value &a, const Value &b, const Value &c)
+	{
+		ConstStrA tm = a->getStringUtf8();
+		TimeStamp tms = TimeStamp::fromYMDhms(a->getUInt,b->getUInt(),c->getUInt(),0,0,0);
+		return new(*env.getFactory().getAllocator()) DateTimeVal(tms.getFloat());
+
+	}
+
+	Tempe::Value fnTime(IExprEnvironment &env, const Value &a, const Value &b, const Value &c)
+	{
+		ConstStrA tm = a->getStringUtf8();
+		TimeStamp tms = TimeStamp::fromYMDhms(0,0,0,a->getUInt, b->getUInt(), c->getUInt());
+		return new(*env.getFactory().getAllocator()) DateTimeVal(tms.getFloat());
+
 	}
 
 }

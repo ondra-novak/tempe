@@ -21,13 +21,14 @@ namespace Tempe {
 		Bin::natural16 minwidth;
 		Bin::natural16 groupsize;
 		Bin::natural16 precision;
-		String fillchar;
-		String delimiter;
-		String decimalmark;
-		String posPrefix;
-		String negPrefix;
-		String posSuffix;
-		String negSuffix;
+		StringA fillchar;
+		StringA delimiter;
+		StringA decimalmark;
+		StringA posPrefix;
+		StringA negPrefix;
+		StringA posSuffix;
+		StringA negSuffix;
+		StringA dateFormat;
 		bool fixed;
 		
 		StringA strTrue;
