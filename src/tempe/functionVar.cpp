@@ -55,10 +55,10 @@ namespace Tempe {
 	bool AbstractFunctionVar::isNull() const {
 		return false;
 	}
-	bool AbstractFunctionVar::operator ==(const JSON::INode& other) const {
+	bool AbstractFunctionVar::operator ==(const JSON::INode& ) const {
 		return false;
 	}
-	bool AbstractFunctionVar::operator !=(const JSON::INode& other) const {
+	bool AbstractFunctionVar::operator !=(const JSON::INode& ) const {
 		return false;
 	}
 
@@ -143,7 +143,7 @@ namespace Tempe {
 		return 0;
 	}
 
-	void AbstractFunctionVar::serialize(IVtWriteIterator<char>& output, bool escapeUTF8) const {
+	void AbstractFunctionVar::serialize(IVtWriteIterator<char>& output, bool ) const {
 		ConstStrA name = getStringUtf8();
 		output.blockWrite(name);
 	}
@@ -160,7 +160,7 @@ namespace Tempe {
 		else throw OperationIsUndefined(THISLOCATION);
 	}
 
-	Value BoundVar::execute(IExprEnvironment& env, ArrayRef<Value> values, Value context) {
+	Value BoundVar::execute(IExprEnvironment& env, ArrayRef<Value> values, Value ) {
 		Value v = resolve();
 		AbstractFunctionVar *x = v->getIfcPtr<AbstractFunctionVar>();
 		if (x) return x->execute(env, values, this->context);
@@ -322,7 +322,7 @@ namespace Tempe {
 		return resolve()->isUtf8();
 	}
 
-	const void * BoundVar::proxyInterface(IInterfaceRequest &p) const
+	const void * BoundVar::proxyInterface(const IInterfaceRequest &p) const
 	{
 		if (typeid(BoundVar) == p.getType()) return static_cast<const BoundVar *>(this);
 		else return IInterface::proxyInterface(p);

@@ -87,7 +87,7 @@ namespace Tempe {
 		AbstractNode(const ExprLocation &loc):loc(loc) {}
 		virtual ExprLocation getSourceLocation() const {return loc;}
 		///unknown nodes cannot be evaluated into const
-		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const { return false; }
+		virtual bool tryToEvalConst(IExprEnvironment &, Value &) const { return false; }
 	protected:
 		ExprLocation loc;
 	};

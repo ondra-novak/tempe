@@ -46,7 +46,7 @@ bool Constant::tryToEvalConst(IExprEnvironment&, Value &val) const
 	return true;
 }
 
-Value Constant::calculate(IExprEnvironment& env) const {
+Value Constant::calculate(IExprEnvironment& ) const {
 	return val;
 }
 
@@ -511,7 +511,7 @@ Value Oper_FnParse::calculate(IExprEnvironment& env) const try {
 	throwScriptException(THISLOCATION,loc,e);throw;
 }
 
-Value Oper_Break::calculate(IExprEnvironment& env) const {
+Value Oper_Break::calculate(IExprEnvironment& ) const {
   throw BreakException(THISLOCATION,this->loc);
 }
 
@@ -628,7 +628,7 @@ IExecutableVar* Oper_FunctionCall::findExecutable(Value obj) const {
 }
 
 
-Value Oper_FunctionCall::executeFn(IExecutableVar *fnvar, IExprEnvironment &env, ArrayRef<Value> args, Value context, bool functor) const {
+Value Oper_FunctionCall::executeFn(IExecutableVar *fnvar, IExprEnvironment &env, ArrayRef<Value> args, Value context, bool ) const {
 	return fnvar->execute(env,args,context);
 }
 
@@ -829,7 +829,7 @@ public:
 	virtual ConstStringT<VarName_OutMode> getArguments() const {
 		return ConstStringT<VarName_OutMode>();
 	}
-	virtual Value execute(IExprEnvironment &env, ArrayRef<Value> values, Value context) {
+	virtual Value execute(IExprEnvironment &env, ArrayRef<Value> , Value context) {
 		LocalScope scope(env);
 		if (context != null) scope.setVar("this",context);
 		if (env.varExists("super")) {
@@ -842,7 +842,7 @@ public:
 					throw InvalidParamCountException(THISLOCATION,"init",0,e.getArguments().length());
 			}
 		}
-		return JSON::getNullNode();
+		return env.getFactory().newValue(null);
 	}
 
 };
@@ -897,7 +897,7 @@ public:
 		if (super != nil) {
 			env.setVar("super", new (*env.getFactory().getAllocator()) ExpandSuperClassFn(super));
 		} else {
-			env.setVar("super", JSON::getNullNode());
+			env.setVar("super", env.getFactory().newValue(null));
 		}
 	}
 
@@ -955,7 +955,7 @@ void Oper_ArrayAppend::setValue(IExprEnvironment& env, const Value& val) {
 
 }
 
-bool Oper_ArrayAppend::isDefined(IExprEnvironment& env) const {
+bool Oper_ArrayAppend::isDefined(IExprEnvironment& ) const {
 	return false;
 }
 
@@ -986,7 +986,7 @@ const VarName & Oper_ArrayAppend::getName(IExprEnvironment &env) const
 	}
 }
 
-Value Oper_ArrayAppend::calculate(IExprEnvironment& env, const Value* subResults) const {
+Value Oper_ArrayAppend::calculate(IExprEnvironment& , const Value* ) const {
 	throw OperationIsUndefined(THISLOCATION) << ScriptException(THISLOCATION,loc);
 }
 
@@ -1012,11 +1012,11 @@ Tempe::Value Oper_ForEach::calculate(IExprEnvironment &env) const
 			branch[1]->calculate(scope);
 		}
 	}
-	return JSON::getNullNode();
+	return env.getFactory().newValue(null);
 }
 
 Value Oper_IncludeTrace::calculate(IExprEnvironment& env) const {
-	if (env.checkIncludeProcessed(path)) return JSON::getNullNode();
+	if (env.checkIncludeProcessed(path)) return env.getFactory().newValue(null);
 	else {
 		env.markIncludeProcessed(path);
 		return expr->calculate(env);
@@ -1086,14 +1086,14 @@ Value dereferenceOfValue(const Value &v)
 	return v;
 }
 
-Tempe::Value Oper_Dereference::calculate(IExprEnvironment &env, const Value *subResults) const
+Tempe::Value Oper_Dereference::calculate(IExprEnvironment &, const Value *subResults) const
 {
 
 	const Value v = subResults[0];
 	return dereferenceOfValue(v);
 }
 
-bool Oper_Dereference::tryToEvalConst(IExprEnvironment &env, Value &val)
+bool Oper_Dereference::tryToEvalConst(IExprEnvironment &env, Value &val) const
 {
 	Value x;
 	if (branch[0]->tryToEvalConst(env, x)) {

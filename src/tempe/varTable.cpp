@@ -22,22 +22,22 @@ namespace Tempe {
 
 
 template<typename T>
-class ScopeObject: public JSON::DynNode_t<T>, public ILinkTarget {
-	typedef JSON::DynNode_t<T> Super;
+class ScopeObject: public JSON::DynNode<T>, public ILinkTarget {
+	typedef JSON::DynNode<T> Super;
 public:
 
 	template<typename X>
-	ScopeObject(const X &x):JSON::DynNode_t<T>(x) {}
+	ScopeObject(const X &x):JSON::DynNode<T>(x) {}
 	virtual SharedPtr<JSON::INode> getScopeWeakPointer() const {return weakPtr;}
 	///Faster access to a variable - dynamic cast is slow
-	virtual void *proxyInterface(typename Super::IInterfaceRequest &p) {
+	virtual void *proxyInterface(typename Super::IInterfaceRequest &p) override  {
 		if (typeid(T) == p.getType()) return static_cast<T *>(this);
 		//to make faster reject that this is not BoundVar
 		else  if (typeid(BoundVar) == p.getType()) return 0;
 		else return IInterface::proxyInterface(p);
 	}
 	///Faster access to a variable - dynamic cast is slow
-	virtual const void *proxyInterface(typename Super::IInterfaceRequest &p) const {
+	virtual const void *proxyInterface(const typename Super::IInterfaceRequest &p) const override {
 		if (typeid(T) == p.getType()) return static_cast<const T *>(this);
 		//to make faster reject that this is not BoundVar
 		else  if (typeid(BoundVar) == p.getType()) return 0;
@@ -53,19 +53,22 @@ protected:
 	SharedPtr<JSON::INode> weakPtr;
 };
 
-class VarTable::Factory_t: public JSON::FactoryAlloc_t<ScopeObject> {
+class VarTable::Factory_t: public JSON::FactoryAlloc<ScopeObject> {
 public:
 	
 	VarTable &owner;
 
-	Factory_t(VarTable &owner):FactoryAlloc_t<ScopeObject>(owner.alloc),owner(owner) {}
+	Factory_t(VarTable &owner):FactoryAlloc<ScopeObject>(owner.alloc),owner(owner) {}
 	virtual IFactory *clone() {return new Factory_t(owner);}
 
-	virtual JSON::PNode newClass() {
+	virtual JSON::Value createObject() override {
 		return owner.regToGc(new(owner.alloc) ScopeObject<Object>);
 	}
-	virtual JSON::PNode newArray() {
-		return owner.regToGc(new(owner.alloc) ScopeObject<Array>);
+	virtual JSON::Value createArray(ConstStringT<JSON::Value> v) override {
+		return owner.regToGc(new(owner.alloc) ScopeObject<Array>(v));
+	}
+	virtual JSON::Value createArray(ConstStringT<JSON::INode *> v) override {
+		return owner.regToGc(new(owner.alloc) ScopeObject<Array>(v));
 	}
 
 
@@ -166,8 +169,8 @@ VarTable::~VarTable() {
 
 LocalScope::LocalScope(IExprEnvironment& parent)
 	:parent(parent)
-	 ,internalGlobal(parent.getInternalGlobalEnv())
 	,global(parent.getGlobalEnv())
+	,internalGlobal(parent.getInternalGlobalEnv())
 	,factory(&parent.getFactory()), table(factory->newClass()), cycleTm(naturalNull)
  {
 }
@@ -243,8 +246,8 @@ LightSpeed::natural LocalScope::getCycleTimeout() const
 
 LocalScope::LocalScope(IExprEnvironment& parent, JSON::PNode import)
 	:parent(parent)
-	, internalGlobal(parent.getInternalGlobalEnv())
 	, global(parent.getGlobalEnv())
+	, internalGlobal(parent.getInternalGlobalEnv())
 	,factory(&parent.getFactory())
 	, table(import)
 {

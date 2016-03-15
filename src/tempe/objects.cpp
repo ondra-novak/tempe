@@ -35,21 +35,23 @@ namespace Tempe {
 		return next != 0 || prev != 0;
 	}
 
-	void Object::clear()
+	Object *Object::clear()
 	{
 		JSON::PNode hold = this;
 		fields.clear();
+		return this;
 	}
 
-	void Array::clear()
+	Array *Array::clear()
 	{
 		JSON::PNode hold = this;
 		list.clear();
+		return this;
 	}
 
-	void GCRegRoot::clear()
+	GCRegRoot *GCRegRoot::clear()
 	{
-
+		return this;
 	}
 
 	void GCRegRoot::clearAll()

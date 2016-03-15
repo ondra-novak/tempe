@@ -17,7 +17,7 @@ namespace Tempe {
 
 using namespace LightSpeed;
 
-class LinkValue: public JSON::LeafNode_t, public DynObject, public JSON::ICustomNode  {
+class LinkValue: public JSON::LeafNode, public DynObject, public JSON::ICustomNode  {
 public:
 	LinkValue(const SharedPtr<JSON::INode> &link):link(link) {}
 

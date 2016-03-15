@@ -554,7 +554,7 @@ Value fnExec(IExprEnvironment& env, const Value& path, ArrayRef<Value> values) {
 }
 
 
-class RandomStream : public JSON::Null_t, public DynObject {
+class RandomStream : public JSON::Null, public DynObject {
 public:
 	SecureRandom &getRandomStream() { return r; }
 protected:

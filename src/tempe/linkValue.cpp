@@ -13,7 +13,7 @@
 namespace Tempe {
 
 
-void LinkValue::serialize(IVtWriteIterator<char>& output, bool escapeUTF8) const {
+void LinkValue::serialize(IVtWriteIterator<char>& output, bool ) const {
 	ConstStrA text = getStringUtf8();
 	output.blockWrite(text,true);
 }

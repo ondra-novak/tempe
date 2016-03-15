@@ -29,27 +29,30 @@ public:
 
 	void unregisterFromGC();
 
-	virtual void clear() = 0;
+	virtual GCReg *clear() = 0;
 
 	bool isRegistered() const;
 
 
 };
 
-class Object: public JSON::Object_t, public GCReg {
+class Object: public JSON::Object, public GCReg {
 public:
-	virtual void clear();
+	virtual Object *clear();
 };
 
-class Array: public JSON::Array_t, public GCReg {
+class Array: public JSON::Array, public GCReg {
 public:
-	virtual void clear();
+	virtual Array *clear();
+	Array();
+	Array(ConstStringT<JSON::Value> x):JSON::Array(x) {}
+	Array(ConstStringT<JSON::INode *> x):JSON::Array(x) {}
 
 };
 
 class GCRegRoot : public GCReg { 
 public:
-	void clear();
+	GCRegRoot *clear();
 	void clearAll();
 };
 

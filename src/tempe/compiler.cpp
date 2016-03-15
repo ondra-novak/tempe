@@ -554,8 +554,7 @@ namespace Tempe {
 
 	}
 
-PExprNode Compiler::compileNEW(ExprLocation loc,
-		TokenReader& reader) {
+PExprNode Compiler::compileNEW(ExprLocation , TokenReader& reader) {
 	PExprNode nd = compileUNARSuffix(reader);
 	Oper_FunctionCall *fncall = nd->getIfcPtr<Oper_FunctionCall>();
 	if (fncall==0) {
@@ -693,7 +692,7 @@ PExprNode Compiler::compileUNAR(TokenReader& reader)
 				return new(alloc)Constant(loc, valueFactory->newValue(false));
 			case TokenReader::kwNull:
 				reader.accept();
-				return new(alloc)Constant(loc, JSON::getNullNode());
+				return new(alloc)Constant(loc, valueFactory->newValue(null));
 			case TokenReader::sVarname:
 				reader.accept();
 				return new (alloc)VariableRef(loc, reader.varname);
@@ -885,7 +884,7 @@ PExprNode Compiler::compileUNAR(TokenReader& reader)
 		return nd;
 	}
 
-	Tempe::PExprNode Compiler::compileOpTryCatch(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpTryCatch(ExprLocation , TokenReader& reader)
 	{
 		reader.enterLevel();
 		PExprNode tryPart = compileExprSeq(reader);
@@ -905,7 +904,7 @@ PExprNode Compiler::compileUNAR(TokenReader& reader)
 
 	}
 
-	Tempe::PExprNode Compiler::compileOpWith(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpWith(ExprLocation , TokenReader& reader)
 	{
 		if (reader.getNext() == TokenReader::kwConst) {
 			reader.accept();
@@ -970,7 +969,7 @@ PExprNode Compiler::compileUNAR(TokenReader& reader)
 		}
 	}
 
-	Tempe::PExprNode Compiler::compileOpScope(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpScope(ExprLocation, TokenReader& reader)
 	{
 		reader.enterLevel();
 		PExprNode body = compileExprSeq(reader);
@@ -987,7 +986,7 @@ PExprNode Compiler::compileUNAR(TokenReader& reader)
 	}
 
 
-	Tempe::PExprNode Compiler::compileOpObject(ExprLocation loc, TokenReader& reader)
+	Tempe::PExprNode Compiler::compileOpObject(ExprLocation , TokenReader& reader)
 	{
 		reader.enterLevel();
 		PExprNode body = compileExprSeq(reader);
@@ -1341,7 +1340,7 @@ EscapeMode Compiler::getCtFromMime(ConstStrA contentType) {
 	return strMimeCt[contentType];
 }
 
-std::pair<PExprNode,FilePath> Compiler::loadCode(ExprLocation loc, ConstStrA name) {
+std::pair<PExprNode,FilePath> Compiler::loadCode(ExprLocation , ConstStrA ) {
 	throw ErrorMessageException(THISLOCATION, "No source repository is available");
 }
 

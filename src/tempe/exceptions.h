@@ -89,7 +89,7 @@ using namespace LightSpeed;
 	public:
 		LIGHTSPEED_EXCEPTIONFINAL;
 
-		ExecutionTimeout(const ProgramLocation &loc) {}
+		ExecutionTimeout(const ProgramLocation &loc):LightSpeed::Exception(loc) {}
 		void message(ExceptionMsg &msg) const;
 	};
 

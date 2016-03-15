@@ -24,12 +24,12 @@ namespace Tempe {
 		if (out) {
 			out->blockWrite(text, true);
 		}
-		return JSON::getNullNode();
+		return env.getFactory().newValue(null);
 	}
 
-	class DateTimeVal : public JSON::FloatField_t, public DynObject {
+	class DateTimeVal : public JSON::FloatField, public DynObject {
 	public:
-		DateTimeVal(double x) :JSON::FloatField_t(x) {}
+		DateTimeVal(double x) :JSON::FloatField(x) {}
 		static bool IsDate(const Value &v) {
 			return (typeid(*v.get()) == typeid(DateTimeVal));
 		}
@@ -68,7 +68,7 @@ namespace Tempe {
 		typedef VtWriteIterator<AutoArray<char, SmallAlloc<256> >::WriteIter &> Wrt;
 		Wrt wrt(iter);
 		JSON::Serializer<IVtWriteIterator<char> > s(wrt,false);
-		s.serializeString(ConstStrA(v));
+		s.serializeStringEscUTF(ConstStrA(v));
 		return buffer.crop(1, 1);
 	}
 
@@ -138,7 +138,7 @@ namespace Tempe {
 
 	static StringA formatIntNumber(POutputConfig cfg, linteger param1){
 
-		ToString<linteger, char> strNum(linteger(abs(param1)));
+		ToString<linteger, char> strNum(linteger(std::abs(param1)));
 
 		AutoArrayStream<char, SmallAlloc<256> > buffer;
 		formatToBufferIntegerPart(param1, cfg, buffer, strNum);
@@ -149,7 +149,7 @@ namespace Tempe {
 
 	static StringA formatFloatNumber(POutputConfig cfg, double param1){
 		if (cfg->precision == 0) param1 = floor(param1 + 0.5);
-		ToString<double> strNum(abs(param1), cfg->precision);
+		ToString<double> strNum(fabs(param1), cfg->precision);
 		natural len = strNum.findLast('.');
 		if (len == naturalNull) len = strNum.length();
 		AutoArrayStream<char, SmallAlloc<256> > buffer;
@@ -237,7 +237,7 @@ namespace Tempe {
 				}
 			}
 		}
-		return  JSON::getNullNode();
+		return env.getFactory().newValue(null);
 	}
 
 	enum OutputConfigFields {
@@ -291,11 +291,11 @@ namespace Tempe {
 		, fillchar(ConstStrA(' '))
 		, delimiter(ConstStrA(' '))
 		, decimalmark(ConstStrA('.'))
-		, fixed(false)
 		, posPrefix(ConstStrA())
-		, posSuffix(ConstStrA())
 		, negPrefix(ConstStrA('-'))
+		, posSuffix(ConstStrA())
 		, negSuffix(ConstStrA())
+		, fixed(false)
 		, strTrue(JSON::strTrue)
 		, strFalse(JSON::strFalse)
 		, strNull(JSON::strNull)
@@ -365,16 +365,14 @@ namespace Tempe {
 
 	Tempe::Value fnDate(IExprEnvironment &env, const Value &a, const Value &b, const Value &c)
 	{
-		ConstStrA tm = a->getStringUtf8();
-		TimeStamp tms = TimeStamp::fromYMDhms(a->getUInt,b->getUInt(),c->getUInt(),0,0,0);
+		TimeStamp tms = TimeStamp::fromYMDhms(a->getUInt(),b->getUInt(),c->getUInt(),0,0,0);
 		return new(*env.getFactory().getAllocator()) DateTimeVal(tms.getFloat());
 
 	}
 
 	Tempe::Value fnTime(IExprEnvironment &env, const Value &a, const Value &b, const Value &c)
 	{
-		ConstStrA tm = a->getStringUtf8();
-		TimeStamp tms = TimeStamp::fromYMDhms(0,0,0,a->getUInt, b->getUInt(), c->getUInt());
+		TimeStamp tms = TimeStamp::fromYMDhms(0,0,0,a->getUInt(), b->getUInt(), c->getUInt());
 		return new(*env.getFactory().getAllocator()) DateTimeVal(tms.getFloat());
 
 	}

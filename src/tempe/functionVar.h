@@ -41,7 +41,7 @@ public:
 	virtual Value execute(IExprEnvironment &env, ArrayRef<Value> values, Value context) = 0;
 };
 
-class AbstractFunctionVar: public JSON::LeafNode_t, public DynObject, public JSON::ICustomNode, public IExecutableVar {
+class AbstractFunctionVar: public JSON::LeafNode, public DynObject, public JSON::ICustomNode, public IExecutableVar {
 public:
 
 	virtual JSON::NodeType getType() const;
@@ -144,9 +144,9 @@ public:
 	virtual bool isUtf8() const ;
 
 	///Faster access to a variable - dynamic cast is slow
-	virtual void *proxyInterface(IInterfaceRequest &p);
+	virtual void *proxyInterface(IInterfaceRequest &p) override;
 	///Faster access to a variable - dynamic cast is slow
-	virtual const void *proxyInterface(IInterfaceRequest &p) const;
+	virtual const void *proxyInterface(const IInterfaceRequest &p) const override;
 	Value getConext();
 	Value dereference();
 public:

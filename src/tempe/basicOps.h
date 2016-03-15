@@ -55,7 +55,7 @@ namespace Tempe {
 		virtual ValueWithContext getValueWithContext(IExprEnvironment &env) const {
 			return ValueWithContext(getValue(env),nil);
 		}
-		virtual Value getContext(IExprEnvironment &env) const { return 0; }
+		virtual Value getContext(IExprEnvironment &) const { return 0; }
 
 	};
 
@@ -63,7 +63,7 @@ namespace Tempe {
 	public:
 		VariableRef(const ExprLocation &loc, const VarName &name);
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual const VarName &getName(IExprEnvironment &env) const {return name;}
+		virtual const VarName &getName(IExprEnvironment &) const {return name;}
 		const VarName &getName() const {return name;}
 	protected:
 		VarName name;
@@ -144,7 +144,7 @@ namespace Tempe {
 		virtual bool isDefined(IExprEnvironment &env) const;
 		virtual void unset(IExprEnvironment &env);
 		virtual const VarName &getName(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 		virtual ValueWithContext getValueWithContext(IExprEnvironment &env) const;
 		virtual Value getContext(IExprEnvironment &env) const;
 
@@ -155,7 +155,7 @@ namespace Tempe {
 		Oper_Or(const ExprLocation &loc):NaryNode<2>(loc) {}
 		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	class Oper_And: public NaryNode<2> {
@@ -163,7 +163,7 @@ namespace Tempe {
 		Oper_And(const ExprLocation &loc):NaryNode<2>(loc) {}
 		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	class Oper_If: public NaryNode<3> {
@@ -171,28 +171,28 @@ namespace Tempe {
 		Oper_If(const ExprLocation &loc):NaryNode<3>(loc) {}
 		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	class Oper_Assign: public NaryNode<2> {
 	public:
 		Oper_Assign(const ExprLocation &loc):NaryNode<2>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	class Oper_Unset: public NaryNode<1> {
 	public:
 		Oper_Unset(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	class Oper_Exist: public NaryNode<1> {
 	public:
 		Oper_Exist(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	class Oper_IsNull: public NaryNode<1> {
@@ -206,7 +206,7 @@ namespace Tempe {
 	public:
 		Oper_Comma(const ExprLocation &loc):NaryNode<2>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	class Oper_Cycle: public NaryNode<1> {
@@ -214,7 +214,7 @@ namespace Tempe {
 		Oper_Cycle(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val) const;
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	
@@ -253,7 +253,7 @@ namespace Tempe {
 	public:
 		Oper_TryCatch(const ExprLocation &loc):NaryNode<3>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	class Oper_WithDo: public NaryNode<2> {
@@ -266,7 +266,7 @@ namespace Tempe {
 
 		Oper_WithDo(const ExprLocation &loc, Isolation isol) :NaryNode<2>(loc),isol(isol) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 		Isolation getIsolation() const;
 		Isolation isol;
 	};
@@ -276,28 +276,28 @@ namespace Tempe {
 	public:
 		Oper_Scope(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	class Oper_Object : public NaryNode<1> {
 	public:
 		Oper_Object(const ExprLocation &loc) :NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const { throw; }
+		virtual Value calculate(IExprEnvironment &, const Value *) const { throw; }
 	};
 
 	class Oper_Throw: public NaryNode<1> {
 	public:
 		Oper_Throw(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 	};
 
 	class Oper_Var: public NaryNode<1>, public LocalVarRef {
 	public:
 		Oper_Var(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const {throw;}
+		virtual Value calculate(IExprEnvironment &, const Value *) const {throw;}
 		virtual const VarName &getName(IExprEnvironment &env) const;
 		mutable VarName result;
 	};
@@ -306,7 +306,7 @@ namespace Tempe {
 	public:
 		Oper_Varname(const ExprLocation &loc) :NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const { throw; }
+		virtual Value calculate(IExprEnvironment &, const Value *) const { throw; }
 	};
 
 	class Oper_FnChr: public VariadicNode {
@@ -378,7 +378,7 @@ namespace Tempe {
 	public:
 		Oper_ForEach(const ExprLocation &loc) : NaryNode<2>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const { throw; }
+		virtual Value calculate(IExprEnvironment &, const Value *) const { throw; }
 	};
 
 	class Oper_IncludeTrace: public AbstractNode {
@@ -398,7 +398,7 @@ namespace Tempe {
 	public:
 		Oper_ReferenceOper(const ExprLocation &loc):NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env) const;
-		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const { throw; }
+		virtual Value calculate(IExprEnvironment &, const Value *) const { throw; }
 
 
 	};
@@ -407,7 +407,7 @@ namespace Tempe {
 	public:
 		Oper_Dereference(const ExprLocation &loc) :NaryNode<1>(loc) {}
 		virtual Value calculate(IExprEnvironment &env, const Value *subResults) const;
-		virtual bool tryToEvalConst(IExprEnvironment &env, Value &val);
+		virtual bool tryToEvalConst(IExprEnvironment &, Value &) const;
 
 	};
 }
