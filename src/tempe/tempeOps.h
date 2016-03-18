@@ -9,6 +9,7 @@ namespace Tempe {
 		OutputText(const ExprLocation &loc, StringA text);
 
 		virtual Value calculate(IExprEnvironment &env) const;
+		const StringA &getText() const {return text;}
 	protected:
 		StringA text;
 	};

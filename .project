@@ -3,6 +3,7 @@
 	<name>tempe</name>
 	<comment></comment>
 	<projects>
+		<project>lightspeed</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
